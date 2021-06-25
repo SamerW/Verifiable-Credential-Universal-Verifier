@@ -1,6 +1,7 @@
 ---
 verifier:
-  -
-    type: jwt_vp
-    url: https://verifier.verifiablecredentials.uk
-    description: Crossword's Identiproof Verifier
+  verifiers:
+    -
+      format: jwt_vp
+      url: https://verifier.verifiablecredentials.uk
+      description: Crossword's Identiproof Verifier

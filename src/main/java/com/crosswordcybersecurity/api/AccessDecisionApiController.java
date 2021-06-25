@@ -62,7 +62,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
             // Set response variables
             HttpStatus lastCode = HttpStatus.NOT_IMPLEMENTED;
-            String lastReason = null;
+            String lastReason = "";
 //            001 the VCs do not belong to the holder (Proof of possession fails);
 //            002 the VCs do not match the RP’s policy;
 //            003 one or more of the VC Issuer’s are not trusted;
@@ -130,10 +130,11 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             } // while
 
             // If none of the VP verification succeeds, exit.
-            if (! lastReason.equals("000")) {
+            if (lastCode == HttpStatus.OK && ! lastReason.equals("000")) {
                 AccessDecisionResponse accessDecisionResponse = new AccessDecisionResponse();
                 accessDecisionResponse.setReasonCode(lastReason);
                 accessDecisionResponse.setGranted(false);
+                log.debug("Response: " + accessDecisionResponse.toString());
                 log.info("## END DECISION ##");
                 return new ResponseEntity<AccessDecisionResponse>(accessDecisionResponse, HttpStatus.OK);
             }
@@ -149,7 +150,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
             // Set response variables
             lastCode = HttpStatus.NOT_IMPLEMENTED;
-            lastReason = null;
+            lastReason = "";
             boolean granted = false;
             com.crosswordcybersecurity.model.W3cVcSkelsList atts = new com.crosswordcybersecurity.model.W3cVcSkelsList();
 
@@ -226,10 +227,11 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             } // while
 
             // If none of the VP verification succeeds, exit.
-            if (! lastReason.equals("000")) {
+            if (lastCode == HttpStatus.OK && ! lastReason.equals("000")) {
                 AccessDecisionResponse accessDecisionResponse = new AccessDecisionResponse();
                 accessDecisionResponse.setReasonCode(lastReason);
                 accessDecisionResponse.setGranted(false);
+                log.debug("Response: " + accessDecisionResponse.toString());
                 log.info("## END DECISION ##");
                 return new ResponseEntity<AccessDecisionResponse>(accessDecisionResponse, HttpStatus.OK);
             }
