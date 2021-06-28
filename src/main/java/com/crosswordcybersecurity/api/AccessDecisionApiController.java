@@ -135,14 +135,14 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                 log.info("Call Verifier API");
                 W3cVcSkelsList w3cVcSkelsList = null;
 
-                com.crosswordcybersecurity.verifier.model.Vp dbVp = new com.crosswordcybersecurity.verifier.model.Vp();
-                dbVp.setFormat(requestVpFormat);
-                dbVp.setPresentation(requestVpPresentation);
+                com.crosswordcybersecurity.verifier.model.Vp verifierVp = new com.crosswordcybersecurity.verifier.model.Vp();
+                verifierVp.setFormat(requestVpFormat);
+                verifierVp.setPresentation(requestVpPresentation);
 
                 VerifyVpRequest verifyVpRequest = new VerifyVpRequest();
                 verifyVpRequest.setChallenge(challenge);
                 verifyVpRequest.setRpurl(rpUrl);
-                verifyVpRequest.setVp(dbVp);
+                verifyVpRequest.setVp(verifierVp);
 
                 VpVerificationApi vpVerificationApi = new VpVerificationApi();
                 vpVerificationApi.getApiClient().setBasePath(verifier.getUrl());
@@ -171,6 +171,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                         lastCode = HttpStatus.SERVICE_UNAVAILABLE;
                     }
                     if (code == 401 && !lastReason.equals("000")) {
+                        lastCode = HttpStatus.OK;
                         lastReason = "001";
                     }
                     // Try Next VP
