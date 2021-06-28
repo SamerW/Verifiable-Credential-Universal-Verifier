@@ -25,7 +25,6 @@ public class VerifierConfiguration {
 
     public Verifier getVerifier(String type) {
         Verifier response = null;
-        Iterator<String> itn = verifiers.keySet().iterator();
 
         if (type != null && verifiers.containsKey(type)) {
             response = verifiers.get(type);
