@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import javax.validation.Valid;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -167,13 +168,20 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                     log.error(e.getMessage());
 
                     int code = e.getCode();
-                    if (code != 401 && lastCode != HttpStatus.OK) {
+
+                    if (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class)) {
                         lastCode = HttpStatus.SERVICE_UNAVAILABLE;
+
+                    } else {
+                        if (code != 401 && lastCode != HttpStatus.OK) {
+                            lastCode = HttpStatus.resolve(code);
+                        }
+                        if (code == 401 && !lastReason.equals("000")) {
+                            lastCode = HttpStatus.OK;
+                            lastReason = "001";
+                        }
                     }
-                    if (code == 401 && !lastReason.equals("000")) {
-                        lastCode = HttpStatus.OK;
-                        lastReason = "001";
-                    }
+
                     // Try Next VP
                 }
             } // if verifier is known
@@ -270,13 +278,16 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                 } catch (ApiException e) {
                     log.error("Error Accessing Verifier: " + verifier.getUrl());
                     log.error(e.getMessage());
+
                     int code = e.getCode();
-                    if (code == 500 && lastCode != HttpStatus.OK) {
+
+                    if (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class)) {
                         lastCode = HttpStatus.SERVICE_UNAVAILABLE;
 
-                    } else if (! lastReason.equals("000")) {
-                        lastReason = "002";
+                    } else if (lastCode != HttpStatus.OK) {
+                        lastCode = HttpStatus.resolve(code);
                     }
+
                     // Try Next VP
                 }
             } // if verifier is known
