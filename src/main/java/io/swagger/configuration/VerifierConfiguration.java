@@ -6,33 +6,33 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Iterator;
-import java.util.List;
+import java.util.Map;
 
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties("verifier")
 public class VerifierConfiguration {
 
-    private List<Verifier> verifiers;
+    private Map<String, Verifier> verifiers;
 
-    public List<Verifier> getVerifiers() {
+    public Map<String, Verifier> getVerifiers() {
         return verifiers;
     }
 
-    public void setVerifiers(List<Verifier> verifiers) {
+    public void setVerifiers(Map<String, Verifier> verifiers) {
         this.verifiers = verifiers;
     }
 
-    public Verifier getVerifier(String format) {
+    public Verifier getVerifier(String type) {
         Verifier response = null;
-        Iterator<Verifier> itn = verifiers.iterator();
-        while (itn.hasNext()) {
-            Verifier verifier = itn.next();
-            if (verifier.getFormat().equals(format)) {
-                response = verifier;
-                break;
-            }
+        Iterator<String> itn = verifiers.keySet().iterator();
+
+        if (type != null && verifiers.containsKey(type)) {
+            response = verifiers.get(type);
+        } else if (verifiers.containsKey("default")) {
+            response = verifiers.get("default");
         }
+
         return response;
     }
 

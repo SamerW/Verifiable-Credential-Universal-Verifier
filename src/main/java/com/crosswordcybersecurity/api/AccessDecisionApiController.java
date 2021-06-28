@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.validation.Valid;
 import javax.servlet.http.HttpServletRequest;
+import java.sql.Timestamp;
 import java.util.*;
 
 @javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.SpringCodegen", date = "2021-06-25T13:57:03.034599+01:00[Europe/London]")
@@ -41,6 +42,35 @@ public class AccessDecisionApiController implements AccessDecisionApi {
     public AccessDecisionApiController(ObjectMapper objectMapper, HttpServletRequest request) {
         this.objectMapper = objectMapper;
         this.request = request;
+    }
+
+    private Map<String, Object> decodeJwtVp(String vpjwt) throws Exception {
+        Map<String, Object> unsignedVp = null;
+        String[] vpParts = vpjwt.split("\\.");
+        String sHeader = Base64.getDecoder().decode(vpParts[0]).toString();
+        String sPayload = Base64.getDecoder().decode(vpParts[1]).toString();
+        Map<String, Object> header = objectMapper.readValue(sHeader, Map.class);
+        Map<String, Object> payload = objectMapper.readValue(sPayload, Map.class);
+        if (payload.containsKey("vp")) {
+            unsignedVp = (Map<String, Object>) payload.get("vp");
+            if (payload.containsKey("jti")) {
+                String jti = (String) payload.get("jti");
+                unsignedVp.put("id", jti);
+            }
+            if (payload.containsKey("exp")) {
+                Long exp = Long.valueOf( ((Integer) payload.get("exp")) * 1000 );
+                String sExp = (new Timestamp(exp)).toInstant().toString();
+                unsignedVp.put("expirationDate", sExp);
+            }
+            if (payload.containsKey("iat")) {
+                Long exp = Long.valueOf( ((Integer) payload.get("iat")) * 1000 );
+                String sIat = (new Timestamp(exp)).toInstant().toString();
+                unsignedVp.put("issuanceDate", sIat);
+            }
+        } else {
+            throw (new Exception("VP JWT doesn't contain a vp property."));
+        }
+        return unsignedVp;
     }
 
     public ResponseEntity<AccessDecisionResponse> decision(@Parameter(in = ParameterIn.DEFAULT, description = "Verifiable Presentation, RP URL, Challenge, policyMatch and Policy Registry URL", required=true, schema=@Schema()) @Valid @RequestBody AccessDecisionRequest body) {
@@ -73,12 +103,43 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             Iterator<Vp> itn = vps.iterator();
             while (itn.hasNext()) {
                 Vp vp = itn.next();
-                String format = vp.getFormat();
-                Verifier verifier = verifierConfiguration.getVerifier(format);
+
+                String requestVpFormat = vp.getFormat();
+                Object requestVpPresentation = vp.getPresentation();
+
+                // Decode VP if in JWT format.
+                Map<String, Object> requestVp = null;
+                if (requestVpFormat.equals("jwt_vp")) {
+                    try {
+                        requestVp = decodeJwtVp((String) requestVpPresentation);
+
+                    } catch (Exception e) {
+                        log.error("Could not decode input VP JWT: " + e.getMessage());
+                        log.info("## END DECISION ##");
+                        return new ResponseEntity<AccessDecisionResponse>(HttpStatus.BAD_REQUEST);
+                    }
+                } else {
+                    requestVp = (Map<String, Object>) requestVpPresentation;
+                }
+
+                // Find VP type and get Verifier details
+                String longFormType = null;
+                if (requestVp.containsKey("@context") && requestVp.containsKey("type")) {
+                    List<String> atContextList = (List<String>) requestVp.get("@context");
+                    List<String> typeList = (List<String>) requestVp.get("type");
+                    if (! atContextList.isEmpty() && ! typeList.isEmpty()) {
+                        String atContext = atContextList.size() > 1 ? atContextList.get(1) : "";
+                        String type = typeList.size() > 1 ? typeList.get(1) : "";
+                        if (! type.equals("")) {
+                            longFormType = atContext + "#" + type;
+                        }
+                    }
+                }
+
+                Verifier verifier = verifierConfiguration.getVerifier(longFormType);
 
                 if (verifier != null) {
                     log.info("Verifier: " + verifier.getDescription());
-                    log.info("Format: " + verifier.getFormat());
 
                     String verifierUrl = verifier.getUrl();
 
@@ -87,8 +148,8 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                     W3cVcSkelsList w3cVcSkelsList = null;
 
                     com.crosswordcybersecurity.verifier.model.Vp dbVp = new com.crosswordcybersecurity.verifier.model.Vp();
-                    dbVp.setFormat(vp.getFormat());
-                    dbVp.setPresentation(vp.getPresentation());
+                    dbVp.setFormat(requestVpFormat);
+                    dbVp.setPresentation(requestVpPresentation);
 
                     VerifyVpRequest verifyVpRequest = new VerifyVpRequest();
                     verifyVpRequest.setChallenge(challenge);
@@ -164,7 +225,6 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
                 if (verifier != null) {
                     log.info("Verifier: " + verifier.getDescription());
-                    log.info("Format: " + verifier.getFormat());
 
                     String verifierUrl = verifier.getUrl();
 

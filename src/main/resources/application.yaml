@@ -1,7 +1,21 @@
 ---
 verifier:
+
   verifiers:
-    -
-      format: jwt_vp
+
+    default:
+      url: https://verifier.verifiablecredentials.uk
+      description: Non Crypto JSON-LD Verifier
+
+    "#AuthenticatedVP":
       url: https://verifier.verifiablecredentials.uk
       description: Crossword's Identiproof Verifier
+      didMethodOfIssuers: null
+      cryptoAlgorithm: null
+
+    "https://www.w3.org/2018/credentials/examples/v1#CredentialManagerPresentation":
+      url: https://dummy.verifier.verifiablecredentials.uk
+      description: JSON-LD Verifier (Example 24 from W3C Spec)
+      didMethodOfIssuers: example
+      cryptoAlgorithm: CLSignature2019
+
