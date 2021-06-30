@@ -245,7 +245,8 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                             try {
                                 trainAtvResult = trainAtvApi.atvtrainApiV1SsiPost(trainAtvRequestParams);
 
-                                log.info("Train API response: " + trainAtvResult.getVerificationResult().toString());
+                                log.debug("Train API request: " + trainAtvRequestParams.toString());
+                                log.debug("Train API response: " + trainAtvResult.toString());
 
                                 if (trainAtvResult.getVerificationStatus() == TRAINATVResult.VerificationStatusEnum.FAILED) {
                                     trustIssuerResult = false;
