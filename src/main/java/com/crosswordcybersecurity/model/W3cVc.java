@@ -44,6 +44,9 @@ public class W3cVc {
   @JsonProperty("credentialSubject")
   private Object credentialSubject = null;
 
+  @JsonProperty("termsOfUse")
+  private List<TermOfUse> termsOfUse = null;
+
   public W3cVc id(String id) {
     this.id = id;
     return this;
@@ -194,6 +197,26 @@ public class W3cVc {
     this.credentialSubject = credentialSubject;
   }
 
+  public W3cVc termsOfUse(List<TermOfUse> termsOfUse) {
+    this.termsOfUse = termsOfUse;
+    return this;
+  }
+
+  /**
+   * Get termsOfUse
+   * @return termsOfUse
+   **/
+  @ApiModelProperty(required = true, value = "")
+  @NotNull
+
+  public List<TermOfUse> getTermsOfUse() {
+    return termsOfUse;
+  }
+
+  public void setTermsOfUse(List<TermOfUse> termsOfUse) {
+    this.termsOfUse = termsOfUse;
+  }
+
 
   @Override
   public boolean equals(Object o) {
@@ -210,18 +233,19 @@ public class W3cVc {
         Objects.equals(this.expirationDate, vcObject.expirationDate) &&
         Objects.equals(this._atContext, vcObject._atContext) &&
         Objects.equals(this.type, vcObject.type) &&
+        Objects.equals(this.termsOfUse, vcObject.termsOfUse) &&
         Objects.equals(this.credentialSubject, vcObject.credentialSubject);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, issuer, issuanceDate, expirationDate, _atContext, type, credentialSubject);
+    return Objects.hash(id, issuer, issuanceDate, expirationDate, _atContext, type, credentialSubject, termsOfUse);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class VcObject {\n");
+    sb.append("class W3cVc {\n");
 
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
     sb.append("    issuer: ").append(toIndentedString(issuer)).append("\n");
@@ -230,6 +254,7 @@ public class W3cVc {
     sb.append("    @context: ").append(toIndentedString(_atContext)).append("\n");
     sb.append("    type: ").append(toIndentedString(type)).append("\n");
     sb.append("    credentialSubject: ").append(toIndentedString(credentialSubject)).append("\n");
+    sb.append("    termsOfUse: ").append(toIndentedString(termsOfUse)).append("\n");
     sb.append("}");
     return sb.toString();
   }

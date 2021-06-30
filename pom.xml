@@ -67,6 +67,14 @@
         </dependency>
 
         <dependency>
+            <groupId>com.crosswordcybersecurity.train</groupId>
+            <artifactId>suv-train-client</artifactId>
+            <version>1.0.0</version>
+            <scope>system</scope>
+            <systemPath>${basedir}/lib/suv-train-client-1.0.0.jar</systemPath>
+        </dependency>
+
+        <dependency>
             <groupId>com.github.joschi.jackson</groupId>
             <artifactId>jackson-datatype-threetenbp</artifactId>
             <version>2.6.4</version>

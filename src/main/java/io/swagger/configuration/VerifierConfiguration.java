@@ -14,6 +14,7 @@ import java.util.Map;
 public class VerifierConfiguration {
 
     private Map<String, Verifier> verifiers;
+    private String trainUrl;
 
     public Map<String, Verifier> getVerifiers() {
         return verifiers;
@@ -35,4 +36,11 @@ public class VerifierConfiguration {
         return response;
     }
 
+    public String getTrainUrl() {
+        return trainUrl;
+    }
+
+    public void setTrainUrl(String trainUrl) {
+        this.trainUrl = trainUrl;
+    }
 }

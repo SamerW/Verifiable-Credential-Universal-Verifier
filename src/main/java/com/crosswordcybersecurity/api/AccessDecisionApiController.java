@@ -4,11 +4,15 @@ import com.crosswordcybersecurity.exceptions.BadVpJwtException;
 import com.crosswordcybersecurity.exceptions.PolicyMatchingException;
 import com.crosswordcybersecurity.exceptions.VerificationException;
 import com.crosswordcybersecurity.model.*;
+import com.crosswordcybersecurity.model.Vp;
+import com.crosswordcybersecurity.train.api.TrainAtvApi;
+import com.crosswordcybersecurity.train.model.TRAINATVRequestParams;
+import com.crosswordcybersecurity.train.model.TRAINATVResult;
 import com.crosswordcybersecurity.verifier.ApiException;
 import com.crosswordcybersecurity.verifier.api.VpVerificationApi;
-import com.crosswordcybersecurity.verifier.model.ValidateRequest;
-import com.crosswordcybersecurity.verifier.model.ValidateResponse;
-import com.crosswordcybersecurity.verifier.model.VerifyVpRequest;
+import com.crosswordcybersecurity.verifier.model.*;
+import com.crosswordcybersecurity.verifier.model.TermOfUse;
+import com.crosswordcybersecurity.verifier.model.W3cVc;
 import com.crosswordcybersecurity.verifier.model.W3cVcSkelsList;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.configuration.VerifierConfiguration;
@@ -204,7 +208,70 @@ public class AccessDecisionApiController implements AccessDecisionApi {
     }
 
     private Map<Vp, W3cVcSkelsList> trustCheck(Map<Vp, W3cVcSkelsList> verifiedVps) {
-        return verifiedVps;
+        Map<Vp, W3cVcSkelsList> trustedVps = new HashMap<Vp, W3cVcSkelsList>();
+
+        String trainUrl = verifierConfiguration.getTrainUrl();
+
+        log.info("Loop Over VPs");
+        Iterator<Vp> itn = verifiedVps.keySet().iterator();
+        while (itn.hasNext()) {
+            Vp vp = itn.next();
+            W3cVcSkelsList w3cVcs = verifiedVps.get(vp);
+            Iterator<W3cVc> itnVc = w3cVcs.iterator();
+            boolean trustIssuersResult = true;
+            boolean trainApiIsInaccessible = false;
+            while (itnVc.hasNext()) {
+                W3cVc w3cVc = itnVc.next();
+                boolean vcContainsToU = w3cVc.getTermsOfUse() != null && ! w3cVc.getTermsOfUse().isEmpty();
+
+                // Call TRAIN API
+                if (vcContainsToU) {
+                    String issuer = w3cVc.getIssuer();
+                    List<TermOfUse> termsOfUse = w3cVc.getTermsOfUse();
+                    Iterator<TermOfUse> itnToU = termsOfUse.iterator();
+                    boolean trustIssuerResult = true;
+                    while (itnToU.hasNext()) {
+                        TermOfUse termOfUse = itnToU.next();
+                        Iterator<String> itnSchemes = termOfUse.getTrustScheme().iterator();
+                        while (itnSchemes.hasNext()) {
+                            String trustScheme = itnSchemes.next();
+
+                            TrainAtvApi trainAtvApi = new TrainAtvApi();
+                            trainAtvApi.getApiClient().setBasePath(trainUrl);
+                            TRAINATVRequestParams trainAtvRequestParams = new TRAINATVRequestParams();
+                            trainAtvRequestParams.setIssuer(issuer);
+                            trainAtvRequestParams.setTrustSchemePointer(trustScheme);
+                            TRAINATVResult trainAtvResult = null;
+                            try {
+                                trainAtvResult = trainAtvApi.atvtrainApiV1SsiPost(trainAtvRequestParams);
+
+                                log.info("Train API response: " + trainAtvResult.getVerificationResult().toString());
+
+                                if (trainAtvResult.getVerificationStatus() == TRAINATVResult.VerificationStatusEnum.FAILED) {
+                                    trustIssuerResult = false;
+                                }
+
+                            } catch (com.crosswordcybersecurity.train.ApiException e) {
+                                log.error("Could not communicate with TRAIN API: " + e.getMessage());
+                                trainApiIsInaccessible = true;
+                            }
+
+                        }
+                    }
+                    trustIssuersResult = trustIssuersResult && trustIssuerResult;
+
+                }
+
+                // Fallback: Check if Issuer is in a Table.
+                if (! vcContainsToU || trainApiIsInaccessible) {
+
+                }
+            }
+            if (trustIssuersResult) {
+                trustedVps.put(vp, w3cVcs);
+            }
+        }
+        return trustedVps;
     }
 
     private com.crosswordcybersecurity.model.W3cVcSkelsList policyMatch(Map<Vp, W3cVcSkelsList> trustedVps, Object policyMatch, String policyRegistryUrl) throws BadVpJwtException, IOException, PolicyMatchingException {
@@ -215,9 +282,9 @@ public class AccessDecisionApiController implements AccessDecisionApi {
         com.crosswordcybersecurity.model.W3cVcSkelsList atts = new com.crosswordcybersecurity.model.W3cVcSkelsList();
 
         log.info("Loop Over VPs");
-        Iterator<Vp> itn3 = trustedVps.keySet().iterator();
-        while (itn3.hasNext()) {
-            Vp vp = itn3.next();
+        Iterator<Vp> itn = trustedVps.keySet().iterator();
+        while (itn.hasNext()) {
+            Vp vp = itn.next();
             W3cVcSkelsList w3cVcSkelsList = trustedVps.get(vp);
 
             String requestVpFormat = vp.getFormat();
@@ -257,7 +324,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
                             // Convert received W3C skeletons to SUV format and save in atts.
                             Iterator<com.crosswordcybersecurity.verifier.model.W3cVc> vcIterator = w3cVcSkelsList.iterator();
-                            W3cVc w3cVc = new W3cVc();
+                            com.crosswordcybersecurity.model.W3cVc w3cVc = new com.crosswordcybersecurity.model.W3cVc();
                             while (vcIterator.hasNext()) {
                                 com.crosswordcybersecurity.verifier.model.W3cVc w3cVcDb = vcIterator.next();
                                 w3cVc.setId(w3cVcDb.getId());
