@@ -173,7 +173,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
                     int code = e.getCode();
 
-                    if (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class)) {
+                    if (code == 404 || (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class))) {
                         lastCode = HttpStatus.SERVICE_UNAVAILABLE;
 
                     } else {
@@ -207,29 +207,32 @@ public class AccessDecisionApiController implements AccessDecisionApi {
         return verifiedVps;
     }
 
-    private Map<Vp, W3cVcSkelsList> trustCheck(Map<Vp, W3cVcSkelsList> verifiedVps) {
-        Map<Vp, W3cVcSkelsList> trustedVps = new HashMap<Vp, W3cVcSkelsList>();
-
+    private Map<Vp, Boolean> trustCheck(Map<Vp, W3cVcSkelsList> verifiedVps) {
         String trainUrl = verifierConfiguration.getTrainUrl();
+        List<String> trustedIssuers = verifierConfiguration.getTrustedIssuers();
+
+        Map<Vp, Boolean> trustedVps = new HashMap<Vp, Boolean>();
 
         log.info("Loop Over VPs");
         Iterator<Vp> itn = verifiedVps.keySet().iterator();
         while (itn.hasNext()) {
             Vp vp = itn.next();
+            boolean trustIssuersResult = true;
+
             W3cVcSkelsList w3cVcs = verifiedVps.get(vp);
             Iterator<W3cVc> itnVc = w3cVcs.iterator();
-            boolean trustIssuersResult = true;
             boolean trainApiIsInaccessible = false;
             while (itnVc.hasNext()) {
                 W3cVc w3cVc = itnVc.next();
                 boolean vcContainsToU = w3cVc.getTermsOfUse() != null && ! w3cVc.getTermsOfUse().isEmpty();
+                String issuer = w3cVc.getIssuer();
+
+                log.info("Trust " + issuer + "?");
 
                 // Call TRAIN API
                 if (vcContainsToU) {
-                    String issuer = w3cVc.getIssuer();
                     List<TermOfUse> termsOfUse = w3cVc.getTermsOfUse();
                     Iterator<TermOfUse> itnToU = termsOfUse.iterator();
-                    boolean trustIssuerResult = true;
                     while (itnToU.hasNext()) {
                         TermOfUse termOfUse = itnToU.next();
                         Iterator<String> itnSchemes = termOfUse.getTrustScheme().iterator();
@@ -248,30 +251,40 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                                 log.debug("Train API request: " + trainAtvRequestParams.toString());
                                 log.debug("Train API response: " + trainAtvResult.toString());
 
-                                if (trainAtvResult.getVerificationStatus() == TRAINATVResult.VerificationStatusEnum.FAILED) {
-                                    trustIssuerResult = false;
-                                }
+                                boolean trustIssuerResult = (trainAtvResult.getVerificationStatus() == TRAINATVResult.VerificationStatusEnum.OK);
+                                log.info(trustIssuerResult ? "yes" : "no");
+                                trustIssuersResult = trustIssuersResult && trustIssuerResult;
 
                             } catch (com.crosswordcybersecurity.train.ApiException e) {
                                 log.error("Could not communicate with TRAIN API: " + e.getMessage());
-                                trainApiIsInaccessible = true;
+                                int code = e.getCode();
+                                if (code == 404 || (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class))) {
+                                    log.error("Train API is inaccesible.");
+                                    trainApiIsInaccessible = true;
+                                    break;
+                                }
+
                             }
-
-                        }
-                    }
-                    trustIssuersResult = trustIssuersResult && trustIssuerResult;
-
-                }
+                            if (trainApiIsInaccessible) {
+                                break;
+                            }
+                        } // loop over trustScheme
+                    } // loop over ToU
+                } // if VP contains ToU
 
                 // Fallback: Check if Issuer is in a Table.
                 if (! vcContainsToU || trainApiIsInaccessible) {
-
+                    boolean trustIssuerResult = trustedIssuers.contains(issuer);
+                    log.info(trustIssuerResult ? "yes" : "no");
+                    trustIssuersResult = trustIssuersResult && trustIssuerResult;
                 }
-            }
-            if (trustIssuersResult) {
-                trustedVps.put(vp, w3cVcs);
-            }
-        }
+
+            } // loop over VCs
+
+            trustedVps.put(vp, trustIssuersResult);
+
+        } // loop over VPs
+
         return trustedVps;
     }
 
@@ -349,7 +362,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
                     int code = e.getCode();
 
-                    if (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class)) {
+                    if (code == 404 || (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class))) {
                         lastCode = HttpStatus.SERVICE_UNAVAILABLE;
 
                     } else if (lastCode != HttpStatus.OK) {
@@ -425,13 +438,27 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             }
 
             log.info("* Trust Check");
-            Map<Vp, W3cVcSkelsList> trustedVps = trustCheck(verifiedVps);
+            Map<Vp, Boolean> trustedVps = trustCheck(verifiedVps);
+            Iterator<Vp> trustedItn = trustedVps.keySet().iterator();
+            boolean trustCheck = true;
+            while (trustedItn.hasNext()) {
+                Vp vp = trustedItn.next();
+                trustCheck = trustCheck && trustedVps.get(vp);
+            }
+            if (! trustCheck) {
+                AccessDecisionResponse accessDecisionResponse = new AccessDecisionResponse();
+                accessDecisionResponse.setReasonCode("003");
+                accessDecisionResponse.setGranted(false);
+                log.debug("Response: " + accessDecisionResponse.toString());
+                log.info("## END DECISION ##");
+                return new ResponseEntity<AccessDecisionResponse>(accessDecisionResponse, HttpStatus.OK);
+            }
 
             log.info("* Policy Match");
 
             com.crosswordcybersecurity.model.W3cVcSkelsList atts = null;
             try {
-                atts = policyMatch(trustedVps, policyMatch, policyRegistryUrl);
+                atts = policyMatch(verifiedVps, policyMatch, policyRegistryUrl);
 
             } catch (PolicyMatchingException e) {
                 if (e.getErrorCode() == HttpStatus.OK) {

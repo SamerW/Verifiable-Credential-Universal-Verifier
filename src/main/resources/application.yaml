@@ -2,22 +2,32 @@
 verifier:
 
   verifiers:
-
     default:
       url: https://dummy.verifier.verifiablecredentials.uk
       description: Non Crypto JSON-LD Verifier
-
     '[#AuthenticatedVP]':
       url: http://localhost:8081
       description: Crossword's Identiproof Verifier
       didMethodOfIssuers: null
       cryptoAlgorithm: null
-
     '[https://www.w3.org/2018/credentials/examples/v1#CredentialManagerPresentation]':
       url: https://dummy.verifier.verifiablecredentials.uk
       description: JSON-LD Verifier (Example 24 from W3C Spec)
       didMethodOfIssuers: example
       cryptoAlgorithm: CLSignature2019
 
-  trainUrl: "https://virtserver.swaggerhub.com/train8/atv/1.0.0"
-#  trainUrl: "https://essif.trust-scheme.de/atvtrain/api/v1/ssi"
+#  trainUrl: "https://virtserver.swaggerhub.com/train8/atv/1.0.0"
+  trainUrl: "https://essif.trust-scheme.de/atvtrain/api/v1/ssi"
+
+  trustedIssuers:
+    - "https://vc.bge.verifiablecredentials.net"
+    - "https://vc.bigbank.verifiablecredentials.net"
+    - "https://vc.canterbury.verifiablecredentials.net"
+    - "https://vc.cleanwater.verifiablecredentials.net"
+    - "https://vc.nhs.verifiablecredentials.net"
+    - "https://vc.kent.verifiablecredentials.net"
+    - "https://vc.poa.verifiablecredentials.net"
+    - "https://vc.smallbank.verifiablecredentials.net"
+    - "https://gvc.nhs.verifiablecredentials.net"
+
+#    - "https://vc.dvla.verifiablecredentials.net"
