@@ -59,7 +59,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.crosswordcybersecurity.verifier</groupId>
+            <groupId>io.identiproof.verifier</groupId>
             <artifactId>suv-verifier-client</artifactId>
             <version>1.0.0</version>
             <scope>system</scope>
@@ -67,7 +67,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.crosswordcybersecurity.train</groupId>
+            <groupId>io.identiproof.train</groupId>
             <artifactId>suv-train-client</artifactId>
             <version>1.0.0</version>
             <scope>system</scope>

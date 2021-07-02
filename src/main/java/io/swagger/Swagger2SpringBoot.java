@@ -10,7 +10,7 @@ import springfox.documentation.oas.annotations.EnableOpenApi;
 
 @SpringBootApplication
 @EnableOpenApi
-@ComponentScan(basePackages = { "io.swagger", "com.crosswordcybersecurity.api" , "io.swagger.configuration"})
+@ComponentScan(basePackages = { "io.swagger", "io.identiproof.suv.api" , "io.swagger.configuration"})
 public class Swagger2SpringBoot implements CommandLineRunner {
 
     @Override

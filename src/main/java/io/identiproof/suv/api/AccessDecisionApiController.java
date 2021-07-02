@@ -6,15 +6,15 @@ import io.identiproof.suv.exceptions.VerificationException;
 import io.identiproof.suv.model.*;
 import io.identiproof.suv.model.AccessDecisionResponse;
 import io.identiproof.suv.model.Verifier;
-import com.crosswordcybersecurity.train.api.TrainAtvApi;
-import com.crosswordcybersecurity.train.model.TRAINATVRequestParams;
-import com.crosswordcybersecurity.train.model.TRAINATVResult;
-import com.crosswordcybersecurity.verifier.ApiException;
-import com.crosswordcybersecurity.verifier.api.VpVerificationApi;
-import com.crosswordcybersecurity.verifier.model.*;
-import com.crosswordcybersecurity.verifier.model.TermOfUse;
-import com.crosswordcybersecurity.verifier.model.W3cVc;
-import com.crosswordcybersecurity.verifier.model.W3cVcSkelsList;
+import io.identiproof.train.api.TrainAtvApi;
+import io.identiproof.train.model.TRAINATVRequestParams;
+import io.identiproof.train.model.TRAINATVResult;
+import io.identiproof.verifier.ApiException;
+import io.identiproof.verifier.api.VpVerificationApi;
+import io.identiproof.verifier.model.*;
+import io.identiproof.verifier.model.TermOfUse;
+import io.identiproof.verifier.model.W3cVc;
+import io.identiproof.verifier.model.W3cVcSkelsList;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.configuration.VerifierConfiguration;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -142,7 +142,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                 log.info("Call Verifier API");
                 W3cVcSkelsList w3cVcSkelsList = null;
 
-                com.crosswordcybersecurity.verifier.model.Vp verifierVp = new com.crosswordcybersecurity.verifier.model.Vp();
+                io.identiproof.verifier.model.Vp verifierVp = new io.identiproof.verifier.model.Vp();
                 verifierVp.setFormat(requestVpFormat);
                 verifierVp.setPresentation(requestVpPresentation);
 
@@ -257,7 +257,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                                 log.info(trustIssuerResult ? "yes" : "no");
                                 trustIssuersResult = trustIssuersResult && trustIssuerResult;
 
-                            } catch (com.crosswordcybersecurity.train.ApiException e) {
+                            } catch (io.identiproof.train.ApiException e) {
                                 log.error("Could not communicate with TRAIN API: " + e.getMessage());
                                 int code = e.getCode();
                                 if (code == 404 || (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class))) {
@@ -323,7 +323,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                 validateRequest.setPolicyRegistryUrl(policyRegistryUrl);
                 validateRequest.setVcs(w3cVcSkelsList);
 
-                com.crosswordcybersecurity.verifier.api.AccessDecisionApi accessDecisionApi = new com.crosswordcybersecurity.verifier.api.AccessDecisionApi();
+                io.identiproof.verifier.api.AccessDecisionApi accessDecisionApi = new io.identiproof.verifier.api.AccessDecisionApi();
                 accessDecisionApi.getApiClient().setBasePath(verifier.getUrl());
                 try {
                     ValidateResponse validateResponse = accessDecisionApi.validate(validateRequest);
@@ -339,10 +339,10 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                             lastCode = HttpStatus.OK;
 
                             // Convert received W3C skeletons to SUV format and save in atts.
-                            Iterator<com.crosswordcybersecurity.verifier.model.W3cVc> vcIterator = w3cVcSkelsList.iterator();
+                            Iterator<io.identiproof.verifier.model.W3cVc> vcIterator = w3cVcSkelsList.iterator();
                             io.identiproof.suv.model.W3cVc w3cVc = new io.identiproof.suv.model.W3cVc();
                             while (vcIterator.hasNext()) {
-                                com.crosswordcybersecurity.verifier.model.W3cVc w3cVcDb = vcIterator.next();
+                                io.identiproof.verifier.model.W3cVc w3cVcDb = vcIterator.next();
                                 w3cVc.setId(w3cVcDb.getId());
                                 w3cVc.setIssuer(w3cVcDb.getIssuer());
                                 w3cVc.setIssuanceDate(w3cVcDb.getIssuanceDate());
