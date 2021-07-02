@@ -1,4 +1,4 @@
-package com.crosswordcybersecurity.model;
+package io.identiproof.suv.model;
 
 public class Verifier {
     private String url;

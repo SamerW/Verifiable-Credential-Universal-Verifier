@@ -1,5 +1,5 @@
 // Copyright (2021) Verifiable Credentials Ltd
-package com.crosswordcybersecurity.model;
+package io.identiproof.suv.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;

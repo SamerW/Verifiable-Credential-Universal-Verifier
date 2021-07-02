@@ -1,4 +1,4 @@
-package com.crosswordcybersecurity.api;
+package io.identiproof.suv.api;
 
 import java.io.IOException;
 

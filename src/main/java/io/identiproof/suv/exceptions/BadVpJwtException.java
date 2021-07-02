@@ -1,4 +1,4 @@
-package com.crosswordcybersecurity.exceptions;
+package io.identiproof.suv.exceptions;
 
 public class BadVpJwtException extends Exception {
     public BadVpJwtException() {

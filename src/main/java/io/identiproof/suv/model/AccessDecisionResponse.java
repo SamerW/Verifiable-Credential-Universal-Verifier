@@ -1,4 +1,4 @@
-package com.crosswordcybersecurity.model;
+package io.identiproof.suv.model;
 
 import java.util.Objects;
 

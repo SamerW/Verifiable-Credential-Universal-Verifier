@@ -1,26 +1,24 @@
-package com.crosswordcybersecurity.model;
+// Copyright (2021) Verifiable Credentials Ltd
+package io.identiproof.suv.model;
 
-import java.util.Objects;
-import com.crosswordcybersecurity.model.VcObject;
-import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.ArrayList;
-import java.util.List;
+import io.swagger.annotations.ApiModel;
 import org.springframework.validation.annotation.Validated;
-import javax.validation.Valid;
-import javax.validation.constraints.*;
+
+import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * A set of VC Skeletons
  */
-@Schema(description = "A set of VC Skeletons")
+@ApiModel(description = "A set of VC Skeletons")
 @Validated
-@javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.SpringCodegen", date = "2021-06-25T13:57:03.034599+01:00[Europe/London]")
+@javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.SpringCodegen", date = "2021-02-09T21:46:10.042Z[Europe/London]")
 
 
-public class VcSkelsList extends ArrayList<VcObject>  {
+public class W3cVcSkelsList extends ArrayList<W3cVc>  {
 
   @Override
-  public boolean equals(java.lang.Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -38,7 +36,7 @@ public class VcSkelsList extends ArrayList<VcObject>  {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("class VcSkelsList {\n");
+    sb.append("class W3cVcSkelsList {\n");
     sb.append("    ").append(toIndentedString(super.toString())).append("\n");
     sb.append("}");
     return sb.toString();
@@ -48,7 +46,7 @@ public class VcSkelsList extends ArrayList<VcObject>  {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(java.lang.Object o) {
+  private String toIndentedString(Object o) {
     if (o == null) {
       return "null";
     }

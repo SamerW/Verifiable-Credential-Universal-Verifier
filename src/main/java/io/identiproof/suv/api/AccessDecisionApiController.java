@@ -1,10 +1,11 @@
-package com.crosswordcybersecurity.api;
+package io.identiproof.suv.api;
 
-import com.crosswordcybersecurity.exceptions.BadVpJwtException;
-import com.crosswordcybersecurity.exceptions.PolicyMatchingException;
-import com.crosswordcybersecurity.exceptions.VerificationException;
-import com.crosswordcybersecurity.model.*;
-import com.crosswordcybersecurity.model.Vp;
+import io.identiproof.suv.exceptions.BadVpJwtException;
+import io.identiproof.suv.exceptions.PolicyMatchingException;
+import io.identiproof.suv.exceptions.VerificationException;
+import io.identiproof.suv.model.*;
+import io.identiproof.suv.model.AccessDecisionResponse;
+import io.identiproof.suv.model.Verifier;
 import com.crosswordcybersecurity.train.api.TrainAtvApi;
 import com.crosswordcybersecurity.train.model.TRAINATVRequestParams;
 import com.crosswordcybersecurity.train.model.TRAINATVResult;
@@ -26,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestBody;
+import io.identiproof.suv.model.Vp;
 
 import javax.validation.Valid;
 import javax.servlet.http.HttpServletRequest;
@@ -288,12 +290,12 @@ public class AccessDecisionApiController implements AccessDecisionApi {
         return trustedVps;
     }
 
-    private com.crosswordcybersecurity.model.W3cVcSkelsList policyMatch(Map<Vp, W3cVcSkelsList> trustedVps, Object policyMatch, String policyRegistryUrl) throws BadVpJwtException, IOException, PolicyMatchingException {
+    private io.identiproof.suv.model.W3cVcSkelsList policyMatch(Map<Vp, W3cVcSkelsList> trustedVps, Object policyMatch, String policyRegistryUrl) throws BadVpJwtException, IOException, PolicyMatchingException {
         // Set response variables
         HttpStatus lastCode = HttpStatus.NOT_IMPLEMENTED;
         String lastReason = "";
         boolean granted = false;
-        com.crosswordcybersecurity.model.W3cVcSkelsList atts = new com.crosswordcybersecurity.model.W3cVcSkelsList();
+        io.identiproof.suv.model.W3cVcSkelsList atts = new io.identiproof.suv.model.W3cVcSkelsList();
 
         log.info("Loop Over VPs");
         Iterator<Vp> itn = trustedVps.keySet().iterator();
@@ -338,7 +340,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
                             // Convert received W3C skeletons to SUV format and save in atts.
                             Iterator<com.crosswordcybersecurity.verifier.model.W3cVc> vcIterator = w3cVcSkelsList.iterator();
-                            com.crosswordcybersecurity.model.W3cVc w3cVc = new com.crosswordcybersecurity.model.W3cVc();
+                            io.identiproof.suv.model.W3cVc w3cVc = new io.identiproof.suv.model.W3cVc();
                             while (vcIterator.hasNext()) {
                                 com.crosswordcybersecurity.verifier.model.W3cVc w3cVcDb = vcIterator.next();
                                 w3cVc.setId(w3cVcDb.getId());
@@ -456,7 +458,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
             log.info("* Policy Match");
 
-            com.crosswordcybersecurity.model.W3cVcSkelsList atts = null;
+            io.identiproof.suv.model.W3cVcSkelsList atts = null;
             try {
                 atts = policyMatch(verifiedVps, policyMatch, policyRegistryUrl);
 

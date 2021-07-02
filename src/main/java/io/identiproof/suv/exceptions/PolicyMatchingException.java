@@ -1,9 +1,8 @@
-package com.crosswordcybersecurity.exceptions;
+package io.identiproof.suv.exceptions;
 
 import org.springframework.http.HttpStatus;
 
-public class VerificationException extends Exception{
-
+public class PolicyMatchingException extends Exception {
     private String reason;
     private HttpStatus errorCode;
 
