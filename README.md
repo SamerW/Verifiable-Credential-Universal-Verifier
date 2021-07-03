@@ -31,4 +31,4 @@ Change default port value in application.properties
 ## License
 
 SUV developed by Crossword Cybersecurity is an open source project licensed under the
-[GNU Lesser General Public License](https://www.gnu.org/licenses/lgpl-3.0.html).
+[GNU Lesser General Public License v3](https://www.gnu.org/licenses/lgpl-3.0.txt).

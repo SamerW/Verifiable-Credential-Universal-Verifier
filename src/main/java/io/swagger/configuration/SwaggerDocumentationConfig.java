@@ -33,7 +33,7 @@ public class SwaggerDocumentationConfig {
             .title("Simple Universal Verifier (SUV) API")
             .description("RPC API For SUV")
             .license("LGPL v3.0")
-            .licenseUrl("https://www.gnu.org/licenses/lgpl-3.0.html")
+            .licenseUrl("https://www.gnu.org/licenses/lgpl-3.0.txt")
             .termsOfServiceUrl("https://www.crosswordcybersecurity.com")
             .version("1.0")
             .contact(new Contact("","", "ioram.sette@crosswordcybersecurity.com"))
