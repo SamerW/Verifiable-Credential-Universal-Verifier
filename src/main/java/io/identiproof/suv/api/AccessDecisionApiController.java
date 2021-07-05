@@ -109,18 +109,11 @@ public class AccessDecisionApiController implements AccessDecisionApi {
         return unsignedVp;
     }
 
-    private Verifier chooseVerifier(String requestVpFormat, Object requestVpPresentation) throws BadVpJwtException, IOException {
+    private Verifier chooseVerifier(Map<String, Object> requestVp) throws BadVpJwtException, IOException {
 
         String didType = null;
         String algorithm = null;
 
-        // Decode VP if in JWT format.
-        Map<String, Object> requestVp = null;
-        if (requestVpFormat.equals("jwt_vp")) {
-                requestVp = decodeJwtVp((String) requestVpPresentation);
-        } else if(requestVpFormat.equals("ldp_vp")) {
-            requestVp = (Map<String, Object>) requestVpPresentation;
-        }
 
         String longFormType = null;
         if (requestVp != null) {
@@ -166,11 +159,6 @@ public class AccessDecisionApiController implements AccessDecisionApi {
         // Set response variables
         HttpStatus lastCode = HttpStatus.NOT_IMPLEMENTED;
         String lastReason = "";
-//            001 the VCs do not belong to the holder (Proof of possession fails);
-//            002 the VCs do not match the RP’s policy;
-//            003 one or more of the VC Issuer’s are not trusted;
-//            004 the challenge in the VP does not match the input challenge;
-//            005 incorrect/unknown schema elements in the VP or a VC
 
         log.info("Loop Over VPs");
         Iterator<Vp> itn = vps.iterator();
@@ -180,7 +168,16 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             String requestVpFormat = vp.getFormat();
             Object requestVpPresentation = vp.getPresentation();
 
-            Verifier verifier = chooseVerifier(requestVpFormat, requestVpPresentation);
+            // Decode VP if in JWT format.
+            log.info("Decode VP if in JWT format");
+            Map<String, Object> requestVp = null;
+            if (requestVpFormat.equals("jwt_vp")) {
+                requestVp = decodeJwtVp((String) requestVpPresentation);
+            } else if(requestVpFormat.equals("ldp_vp")) {
+                requestVp = (Map<String, Object>) requestVpPresentation;
+            }
+
+            Verifier verifier = chooseVerifier(requestVp);
 
             if (verifier != null) {
                 log.info("Verifier: " + verifier.getDescription());
@@ -222,22 +219,43 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
                     int code = e.getCode();
 
-                    if (code == 404 || (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class))) {
+                    // Service Unavailable
+                    if (code == 404 || code == 0) {
                         lastCode = HttpStatus.SERVICE_UNAVAILABLE;
+                        log.error("Service Unavailable: " + e.getMessage());
 
-                    } else {
-                        if (code != 401 && lastCode != HttpStatus.OK) {
-                            lastCode = HttpStatus.resolve(code);
-                        }
-                        if (code == 401 && !lastReason.equals("000")) {
-                            lastCode = HttpStatus.OK;
-                            lastReason = "001";
-                        }
+                    // 001 the VCs do not belong to the holder (Proof of possession fails);
+                    } else if (code == 401 && !lastReason.equals("000")) {
+                        lastCode = HttpStatus.OK;
+                        lastReason = "001";
+
+                    // 004 the challenge in the VP does not match the input challenge;
+                    } else if (code == 417 && !lastReason.equals("000")) {
+                        lastCode = HttpStatus.OK;
+                        lastReason = "004";
+
+                    // 005 incorrect/unknown schema elements in the VP or a VC
+                    } else if (code == 415 && !lastReason.equals("000")) {
+                        lastCode = HttpStatus.OK;
+                        lastReason = "005";
+
+                    // 005 incorrect/unknown schema elements in the VP or a VC
+                    } else if (code == 406 && !lastReason.equals("000")) {
+                        lastCode = HttpStatus.OK;
+                        lastReason = "006";
+
+                    // Otherwise, return an error.
+                    } else if (lastCode != HttpStatus.OK) {
+                        lastCode = HttpStatus.resolve(code);
                     }
 
                     // Try Next VP
                 }
-            } // if verifier is known
+            // if verifier is known
+            } else {
+                lastCode = HttpStatus.NOT_FOUND;
+            }
+
         } // while
 
         // If none of the VP verification succeeds, exit.
@@ -486,6 +504,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                 trustCheck = trustCheck && trustedVps.get(vp);
             }
             if (! trustCheck) {
+                // 003 one or more of the VC Issuer’s are not trusted;
                 AccessDecisionResponse accessDecisionResponse = new AccessDecisionResponse();
                 accessDecisionResponse.setReasonCode("003");
                 accessDecisionResponse.setGranted(false);
