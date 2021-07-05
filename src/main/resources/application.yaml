@@ -16,8 +16,8 @@ verifier:
       didMethodOfIssuers: example
       cryptoAlgorithm: CLSignature2019
 
-#  trainUrl: "https://virtserver.swaggerhub.com/train8/atv/1.0.0"
-  trainUrl: "https://essif.trust-scheme.de/atvtrain/api/v1/ssi"
+  trainUrl: "https://virtserver.swaggerhub.com/train8/atv/1.0.0"
+#  trainUrl: "https://essif.trust-scheme.de/atvtrain/api/v1/ssi"
 
   trustedIssuers:
     - "https://vc.bge.verifiablecredentials.net"
@@ -29,5 +29,4 @@ verifier:
     - "https://vc.poa.verifiablecredentials.net"
     - "https://vc.smallbank.verifiablecredentials.net"
     - "https://gvc.nhs.verifiablecredentials.net"
-
-#    - "https://vc.dvla.verifiablecredentials.net"
+    - "https://vc.dvla.verifiablecredentials.net"
