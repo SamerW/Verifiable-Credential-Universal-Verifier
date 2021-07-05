@@ -25,12 +25,13 @@ import java.util.Map;
 
 @Configuration
 @EnableConfigurationProperties
-@ConfigurationProperties("verifier")
-public class VerifierConfiguration {
+@ConfigurationProperties("suv")
+public class SUVConfiguration {
 
     private Map<String, Verifier> verifiers;
     private String trainUrl;
     private List<String> trustedIssuers;
+    private String policyMatchUrl;
 
     public Map<String, Verifier> getVerifiers() {
         return verifiers;
@@ -98,5 +99,13 @@ public class VerifierConfiguration {
 
     public void setTrustedIssuers(List<String> trustedIssuers) {
         this.trustedIssuers = trustedIssuers;
+    }
+
+    public String getPolicyMatchUrl() {
+        return policyMatchUrl;
+    }
+
+    public void setPolicyMatchUrl(String policyMatchUrl) {
+        this.policyMatchUrl = policyMatchUrl;
     }
 }

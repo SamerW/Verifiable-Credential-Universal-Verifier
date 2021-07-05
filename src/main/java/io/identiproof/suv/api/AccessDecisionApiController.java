@@ -31,7 +31,7 @@ import io.identiproof.verifier.model.TermOfUse;
 import io.identiproof.verifier.model.W3cVc;
 import io.identiproof.verifier.model.W3cVcSkelsList;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.swagger.configuration.VerifierConfiguration;
+import io.swagger.configuration.SUVConfiguration;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -56,7 +56,7 @@ import java.util.*;
 public class AccessDecisionApiController implements AccessDecisionApi {
 
     @Autowired
-    private VerifierConfiguration verifierConfiguration;
+    private SUVConfiguration SUVConfiguration;
 
     private static final Logger log = LoggerFactory.getLogger(AccessDecisionApiController.class);
 
@@ -155,7 +155,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
         }
 
-        Verifier verifier = verifierConfiguration.getVerifier(longFormType, didType, algorithm);
+        Verifier verifier = SUVConfiguration.getVerifier(longFormType, didType, algorithm);
 
         return verifier;
     }
@@ -257,8 +257,8 @@ public class AccessDecisionApiController implements AccessDecisionApi {
     }
 
     private Map<Vp, Boolean> trustCheck(Map<Vp, W3cVcSkelsList> verifiedVps) {
-        String trainUrl = verifierConfiguration.getTrainUrl();
-        List<String> trustedIssuers = verifierConfiguration.getTrustedIssuers();
+        String trainUrl = SUVConfiguration.getTrainUrl();
+        List<String> trustedIssuers = SUVConfiguration.getTrustedIssuers();
 
         Map<Vp, Boolean> trustedVps = new HashMap<Vp, Boolean>();
 
@@ -338,99 +338,94 @@ public class AccessDecisionApiController implements AccessDecisionApi {
     }
 
     private io.identiproof.suv.model.W3cVcSkelsList policyMatch(Map<Vp, W3cVcSkelsList> trustedVps, Object policyMatch, String policyRegistryUrl) throws BadVpJwtException, IOException, PolicyMatchingException {
-        // Set response variables
-        HttpStatus lastCode = HttpStatus.NOT_IMPLEMENTED;
-        String lastReason = "";
-        boolean granted = false;
-        io.identiproof.suv.model.W3cVcSkelsList atts = new io.identiproof.suv.model.W3cVcSkelsList();
+        String policyMatchUrl = SUVConfiguration.getPolicyMatchUrl();
 
-        log.info("Loop Over VPs");
+        // Set response variables
+        boolean granted = false;
+        io.identiproof.suv.model.W3cVcSkelsList atts = null;
+
+        log.info("Combine verified VCs on all VPs");
+        W3cVcSkelsList allVcSkelsList = new W3cVcSkelsList();
         Iterator<Vp> itn = trustedVps.keySet().iterator();
         while (itn.hasNext()) {
             Vp vp = itn.next();
             W3cVcSkelsList w3cVcSkelsList = trustedVps.get(vp);
+            allVcSkelsList.addAll(w3cVcSkelsList);
+        }
 
-            String requestVpFormat = vp.getFormat();
-            Object requestVpPresentation = vp.getPresentation();
+        if (policyMatchUrl != null) {
+            // Validation
+            log.info("Call Policy Match API externally");
 
-            Verifier verifier = chooseVerifier(requestVpFormat, requestVpPresentation);
+            ValidateRequest validateRequest = new ValidateRequest();
+            validateRequest.setPolicyMatch(policyMatch);
+            validateRequest.setPolicyRegistryUrl(policyRegistryUrl);
+            validateRequest.setVcs(allVcSkelsList);
 
-            if (verifier != null) {
-                log.info("Verifier: " + verifier.getDescription());
+            io.identiproof.verifier.api.AccessDecisionApi accessDecisionApi = new io.identiproof.verifier.api.AccessDecisionApi();
+            accessDecisionApi.getApiClient().setBasePath(policyMatchUrl);
+            try {
+                ValidateResponse validateResponse = accessDecisionApi.validate(validateRequest);
+                log.debug("Validate Response: " + validateResponse.toString());
 
-                // Validation
-                log.info("Call Internal Policy Match API");
+                if (validateResponse != null) {
+                    granted = validateResponse.isMatched();
 
-                ValidateRequest validateRequest = new ValidateRequest();
-                validateRequest.setPolicyMatch(policyMatch);
-                validateRequest.setPolicyRegistryUrl(policyRegistryUrl);
-                validateRequest.setVcs(w3cVcSkelsList);
+                    if (granted) {
+                        // Convert received W3C skeletons to SUV format and save in atts.
+                        atts = convertW3cFromVerifierToSuv(allVcSkelsList);
 
-                io.identiproof.verifier.api.AccessDecisionApi accessDecisionApi = new io.identiproof.verifier.api.AccessDecisionApi();
-                accessDecisionApi.getApiClient().setBasePath(verifier.getUrl());
-                try {
-                    ValidateResponse validateResponse = accessDecisionApi.validate(validateRequest);
-                    log.debug("Validate Response: " + validateResponse.toString());
-
-                    if (validateResponse != null) {
-                        boolean isMatch = validateResponse.isMatched();
-                        granted = granted || isMatch; // true if any VP matches
-                        lastCode = HttpStatus.OK;
-
-                        if (isMatch) {
-                            lastReason = "000";
-                            lastCode = HttpStatus.OK;
-
-                            // Convert received W3C skeletons to SUV format and save in atts.
-                            Iterator<io.identiproof.verifier.model.W3cVc> vcIterator = w3cVcSkelsList.iterator();
-                            io.identiproof.suv.model.W3cVc w3cVc = new io.identiproof.suv.model.W3cVc();
-                            while (vcIterator.hasNext()) {
-                                io.identiproof.verifier.model.W3cVc w3cVcDb = vcIterator.next();
-                                w3cVc.setId(w3cVcDb.getId());
-                                w3cVc.setIssuer(w3cVcDb.getIssuer());
-                                w3cVc.setIssuanceDate(w3cVcDb.getIssuanceDate());
-                                w3cVc.setExpirationDate(w3cVcDb.getExpirationDate());
-                                w3cVc.setAtContext(w3cVcDb.getAtContext());
-                                w3cVc.setType(w3cVcDb.getType());
-                                w3cVc.setCredentialSubject(w3cVcDb.getCredentialSubject());
-                                atts.add(w3cVc);
-                            }
-
-                        } else if (! lastReason.equals("000")) {
-                            lastReason = "002";
-                        }
+                    } else {
+                        PolicyMatchingException policyMatchingException = new PolicyMatchingException();
+                        policyMatchingException.setErrorCode(HttpStatus.OK);
+                        policyMatchingException.setReason("002");
+                        throw policyMatchingException;
                     }
-
-                } catch (ApiException e) {
-                    log.error("Error Accessing Verifier: " + verifier.getUrl());
-                    log.error(e.getMessage());
-
-                    int code = e.getCode();
-
-                    if (code == 404 || (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class))) {
-                        lastCode = HttpStatus.SERVICE_UNAVAILABLE;
-
-                    } else if (lastCode != HttpStatus.OK) {
-                        lastCode = HttpStatus.resolve(code);
-                    }
-
-                    // Try Next VP
                 }
-            } // if verifier is known
-        } // while
 
-        // If none of the VP verification succeeds, exit.
-        if (lastCode == HttpStatus.OK) {
-            if (!granted) {
+            } catch (ApiException e) {
+                log.error("Error Accessing External Policy Match Service: " + policyMatchUrl);
+                log.error(e.getMessage());
+
+                int code = e.getCode();
+                HttpStatus responseCode = HttpStatus.resolve(code);
+
+                if (code == 404 || code == 0) {
+                    log.error("Service Unavailable" + e.getMessage());
+                    responseCode = HttpStatus.SERVICE_UNAVAILABLE;
+                }
+
                 PolicyMatchingException policyMatchingException = new PolicyMatchingException();
-                policyMatchingException.setErrorCode(lastCode);
-                policyMatchingException.setReason(lastReason);
+                policyMatchingException.setErrorCode(responseCode);
                 throw policyMatchingException;
             }
+
+        // No Policy Match URL defined
         } else {
-            PolicyMatchingException policyMatchingException = new PolicyMatchingException();
-            policyMatchingException.setErrorCode(lastCode);
-            throw policyMatchingException;
+            log.info("Call Policy Match API internally");
+            // ToDo: Implement Internal Policy Matching
+            atts = convertW3cFromVerifierToSuv(allVcSkelsList);
+        }
+
+        return atts;
+    }
+
+    private io.identiproof.suv.model.W3cVcSkelsList convertW3cFromVerifierToSuv(W3cVcSkelsList allVcSkelsList) {
+
+        io.identiproof.suv.model.W3cVcSkelsList atts = new io.identiproof.suv.model.W3cVcSkelsList();
+
+        Iterator<io.identiproof.verifier.model.W3cVc> vcIterator = allVcSkelsList.iterator();
+        io.identiproof.suv.model.W3cVc w3cVc = new io.identiproof.suv.model.W3cVc();
+        while (vcIterator.hasNext()) {
+            io.identiproof.verifier.model.W3cVc w3cVcDb = vcIterator.next();
+            w3cVc.setId(w3cVcDb.getId());
+            w3cVc.setIssuer(w3cVcDb.getIssuer());
+            w3cVc.setIssuanceDate(w3cVcDb.getIssuanceDate());
+            w3cVc.setExpirationDate(w3cVcDb.getExpirationDate());
+            w3cVc.setAtContext(w3cVcDb.getAtContext());
+            w3cVc.setType(w3cVcDb.getType());
+            w3cVc.setCredentialSubject(w3cVcDb.getCredentialSubject());
+            atts.add(w3cVc);
         }
 
         return atts;

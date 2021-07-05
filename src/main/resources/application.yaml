@@ -1,6 +1,5 @@
 ---
-verifier:
-
+suv:
   verifiers:
     default:
       url: https://dummy.verifier.verifiablecredentials.uk
@@ -33,3 +32,5 @@ verifier:
     - "https://vc.smallbank.verifiablecredentials.net"
     - "https://gvc.nhs.verifiablecredentials.net"
     - "https://vc.dvla.verifiablecredentials.net"
+
+  policyMatchUrl: http://localhost:8081
