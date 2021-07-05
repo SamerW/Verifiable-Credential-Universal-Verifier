@@ -15,11 +15,13 @@
 
 package io.identiproof.suv.model;
 
+import java.util.List;
+
 public class Verifier {
     private String url;
     private String description;
-    private String didMethodOfIssuers;
-    private String cryptoAlgorithm;
+    private String didMethod;
+    private List<String> signatureAlgorithm;
 
     public String getUrl() {
         return url;
@@ -37,19 +39,19 @@ public class Verifier {
         this.description = description;
     }
 
-    public String getDidMethodOfIssuers() {
-        return didMethodOfIssuers;
+    public String getDidMethod() {
+        return didMethod;
     }
 
-    public void setDidMethodOfIssuers(String didMethodOfIssuers) {
-        this.didMethodOfIssuers = didMethodOfIssuers;
+    public void setDidMethod(String didMethod) {
+        this.didMethod = didMethod;
     }
 
-    public String getCryptoAlgorithm() {
-        return cryptoAlgorithm;
+    public List<String> getSignatureAlgorithm() {
+        return signatureAlgorithm;
     }
 
-    public void setCryptoAlgorithm(String cryptoAlgorithm) {
-        this.cryptoAlgorithm = cryptoAlgorithm;
+    public void setSignatureAlgorithm(List<String> signatureAlgorithm) {
+        this.signatureAlgorithm = signatureAlgorithm;
     }
 }

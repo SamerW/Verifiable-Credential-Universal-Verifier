@@ -89,40 +89,75 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                 unsignedVp.put("expirationDate", sExp);
             }
             if (payload.containsKey("iat")) {
-                Long exp = Long.valueOf( ((Integer) payload.get("iat")) * 1000 );
-                String sIat = (new Timestamp(exp)).toInstant().toString();
+                Long iat = Long.valueOf( ((Integer) payload.get("iat")) * 1000 );
+                String sIat = (new Timestamp(iat)).toInstant().toString();
                 unsignedVp.put("issuanceDate", sIat);
+            }
+            if (payload.containsKey("iss")) {
+                String sIss = (String) payload.get("iss");
+                unsignedVp.put("holder", sIss);
             }
         } else {
             throw (new BadVpJwtException("VP JWT doesn't contain a vp property."));
         }
+        if (header.containsKey("alg")) {
+            String sProofType = (String) header.get("alg");
+            Map<String, String> proof = new HashMap<>();
+            proof.put("type", sProofType);
+            unsignedVp.put("proof", proof);
+        }
         return unsignedVp;
     }
 
-    private String getVerifier(String requestVpFormat, Object requestVpPresentation) throws BadVpJwtException, IOException {
+    private Verifier chooseVerifier(String requestVpFormat, Object requestVpPresentation) throws BadVpJwtException, IOException {
+
+        String didType = null;
+        String algorithm = null;
+
         // Decode VP if in JWT format.
         Map<String, Object> requestVp = null;
         if (requestVpFormat.equals("jwt_vp")) {
                 requestVp = decodeJwtVp((String) requestVpPresentation);
-        } else {
+        } else if(requestVpFormat.equals("ldp_vp")) {
             requestVp = (Map<String, Object>) requestVpPresentation;
         }
 
-        // Find VP type and get Verifier details
         String longFormType = null;
-        if (requestVp.containsKey("@context") && requestVp.containsKey("type")) {
-            List<String> atContextList = (List<String>) requestVp.get("@context");
-            List<String> typeList = (List<String>) requestVp.get("type");
-            if (! atContextList.isEmpty() && ! typeList.isEmpty()) {
-                String atContext = atContextList.size() > 1 ? atContextList.get(1) : "";
-                String type = typeList.size() > 1 ? typeList.get(1) : "";
-                if (! type.equals("")) {
-                    longFormType = atContext + "#" + type;
+        if (requestVp != null) {
+
+            // Find VP type and get Verifier details
+            if (requestVp.containsKey("@context") && requestVp.containsKey("type")) {
+                List<String> atContextList = (List<String>) requestVp.get("@context");
+                List<String> typeList = (List<String>) requestVp.get("type");
+                if (! atContextList.isEmpty() && ! typeList.isEmpty()) {
+                    String atContext = atContextList.size() > 1 ? atContextList.get(1) : "";
+                    String type = typeList.size() > 1 ? typeList.get(1) : "";
+                    if (! type.equals("")) {
+                        longFormType = atContext + "#" + type;
+                    }
                 }
             }
+
+            // Pick the DID type and JSON-LD proof type (crypto algorithm) if exists
+            if (requestVp.containsKey("holder") && requestVp.get("holder") != null && String.class.isAssignableFrom(requestVp.get("holder").getClass())) {
+                String issuer = (String) requestVp.get("holder");
+                if (issuer.startsWith("did:")) {
+                    String[] didFields = issuer.split(":");
+                    didType = didFields[1];
+                }
+            }
+            if (requestVp.containsKey("proof") && requestVp.get("proof") != null && Map.class.isAssignableFrom(requestVp.get("proof").getClass())) {
+                Map<String, String> proof = (Map<String, String>) requestVp.get("proof");
+                if (proof.containsKey("type") && proof.get("type") != null) {
+                    algorithm = proof.get("type");
+                }
+            }
+
         }
 
-        return longFormType;
+        Verifier verifier = verifierConfiguration.getVerifier(longFormType, didType, algorithm);
+
+        return verifier;
     }
 
     private Map<Vp, W3cVcSkelsList> verify(String challenge, String rpUrl, List<Vp> vps) throws VerificationException, BadVpJwtException, IOException {
@@ -145,10 +180,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             String requestVpFormat = vp.getFormat();
             Object requestVpPresentation = vp.getPresentation();
 
-            String longFormType = null;
-            longFormType = getVerifier(requestVpFormat, requestVpPresentation);
-
-            Verifier verifier = verifierConfiguration.getVerifier(longFormType);
+            Verifier verifier = chooseVerifier(requestVpFormat, requestVpPresentation);
 
             if (verifier != null) {
                 log.info("Verifier: " + verifier.getDescription());
@@ -321,11 +353,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             String requestVpFormat = vp.getFormat();
             Object requestVpPresentation = vp.getPresentation();
 
-            String longFormType = null;
-            longFormType = getVerifier(requestVpFormat, requestVpPresentation);
-
-
-            Verifier verifier = verifierConfiguration.getVerifier(longFormType);
+            Verifier verifier = chooseVerifier(requestVpFormat, requestVpPresentation);
 
             if (verifier != null) {
                 log.info("Verifier: " + verifier.getDescription());

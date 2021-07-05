@@ -40,12 +40,44 @@ public class VerifierConfiguration {
         this.verifiers = verifiers;
     }
 
-    public Verifier getVerifier(String type) {
+    public Verifier getVerifier(String longFormType, String didType, String algorithm) {
         Verifier response = null;
 
-        if (type != null && verifiers.containsKey(type)) {
-            response = verifiers.get(type);
-        } else if (verifiers.containsKey("default")) {
+        if (longFormType != null && verifiers.containsKey(longFormType)) {
+            response = verifiers.get(longFormType);
+        }
+
+        // Fallback (if no Verifier has the long form type)
+        if (response == null){
+            Verifier candidate = null;
+            for (String verifierKey : verifiers.keySet()) {
+                Verifier verifier = verifiers.get(verifierKey);
+                String verifierDidType = verifier.getDidMethod();
+                List<String> verifierAlgorithm = verifier.getSignatureAlgorithm();
+                Boolean didMatch = null;
+                if (verifierDidType != null && didType != null) {
+                    didMatch = verifierDidType.equals(didType);
+                }
+                Boolean algorithmMatch = null;
+                if (verifierAlgorithm != null && algorithm != null) {
+                    algorithmMatch = verifierAlgorithm.contains(algorithm);
+                }
+                boolean bothMatch = (didMatch != null && algorithmMatch != null && didMatch && algorithmMatch);
+                boolean anyMatch = (didMatch != null && algorithmMatch == null && didMatch) ||
+                                   (algorithmMatch != null && didMatch == null && algorithmMatch);
+                if (bothMatch) {
+                    response = verifier;
+                } else if (anyMatch && response == null) {
+                    candidate = verifier;
+                }
+            }
+            if (response == null && candidate != null ) {
+                response = candidate;
+            }
+        }
+
+        // Final Fallback (use default aka "nullVerifier") if no match
+        if (response == null && verifiers.containsKey("default")) {
             response = verifiers.get("default");
         }
 
