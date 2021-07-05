@@ -433,8 +433,8 @@ public class AccessDecisionApiController implements AccessDecisionApi {
         io.identiproof.suv.model.W3cVcSkelsList atts = new io.identiproof.suv.model.W3cVcSkelsList();
 
         Iterator<io.identiproof.verifier.model.W3cVc> vcIterator = allVcSkelsList.iterator();
-        io.identiproof.suv.model.W3cVc w3cVc = new io.identiproof.suv.model.W3cVc();
         while (vcIterator.hasNext()) {
+            io.identiproof.suv.model.W3cVc w3cVc = new io.identiproof.suv.model.W3cVc();
             io.identiproof.verifier.model.W3cVc w3cVcDb = vcIterator.next();
             w3cVc.setId(w3cVcDb.getId());
             w3cVc.setIssuer(w3cVcDb.getIssuer());
@@ -443,6 +443,17 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             w3cVc.setAtContext(w3cVcDb.getAtContext());
             w3cVc.setType(w3cVcDb.getType());
             w3cVc.setCredentialSubject(w3cVcDb.getCredentialSubject());
+            List<TermOfUse> termsOfUseDb = w3cVcDb.getTermsOfUse();
+            List<io.identiproof.suv.model.TermOfUse> termsOfUse = new ArrayList<io.identiproof.suv.model.TermOfUse>();
+            Iterator<TermOfUse> itn2 = termsOfUseDb.iterator();
+            while (itn2.hasNext()) {
+                TermOfUse termOfUseDb = itn2.next();
+                io.identiproof.suv.model.TermOfUse termOfUse = new io.identiproof.suv.model.TermOfUse();
+                termOfUse.setType(termOfUseDb.getType());
+                termOfUse.setTrustScheme(termOfUseDb.getTrustScheme());
+                termsOfUse.add(termOfUse);
+            }
+            w3cVc.setTermsOfUse(termsOfUse);
             atts.add(w3cVc);
         }
 
