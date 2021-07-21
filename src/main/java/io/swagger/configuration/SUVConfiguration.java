@@ -32,6 +32,8 @@ public class SUVConfiguration {
 
     private Map<String, Verifier> verifiers;
     private String trainUrl;
+    private String trainType;
+    private boolean ignoreUnknownTrustType;
     private List<String> trustedIssuers;
     private String policyMatchUrl;
 
@@ -93,6 +95,22 @@ public class SUVConfiguration {
 
     public void setTrainUrl(String trainUrl) {
         this.trainUrl = trainUrl;
+    }
+
+    public String getTrainType() {
+        return trainType;
+    }
+
+    public void setTrainType(String trainType) {
+        this.trainType = trainType;
+    }
+
+    public boolean isIgnoreUnknownTrustType() {
+        return ignoreUnknownTrustType;
+    }
+
+    public void setIgnoreUnknownTrustType(boolean ignoreUnknownTrustType) {
+        this.ignoreUnknownTrustType = ignoreUnknownTrustType;
     }
 
     public List<String> getTrustedIssuers() {

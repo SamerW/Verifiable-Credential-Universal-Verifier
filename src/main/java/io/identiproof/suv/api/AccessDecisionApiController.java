@@ -278,6 +278,8 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
     private Map<Vp, Boolean> trustCheck(Map<Vp, W3cVcSkelsList> verifiedVps) {
         String trainUrl = SUVConfiguration.getTrainUrl();
+        String trainType = SUVConfiguration.getTrainType();
+        boolean ignoreUnknownTrustType = SUVConfiguration.isIgnoreUnknownTrustType();
         List<String> trustedIssuers = SUVConfiguration.getTrustedIssuers();
 
         Map<Vp, Boolean> trustedVps = new HashMap<Vp, Boolean>();
@@ -293,60 +295,80 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             boolean trainApiIsInaccessible = false;
             while (itnVc.hasNext()) {
                 W3cVc w3cVc = itnVc.next();
-                boolean vcContainsToU = w3cVc.getTermsOfUse() != null && ! w3cVc.getTermsOfUse().isEmpty();
                 String issuer = w3cVc.getIssuer();
 
                 log.info("Trust " + issuer + "?");
 
-                // Call TRAIN API
-                if (vcContainsToU) {
+                boolean trustIssuerResult = false;
+
+                // Check if Issuer against local list.
+                if (trustedIssuers != null) {
+                    trustIssuerResult = trustedIssuers.contains(issuer);
+                    log.info(trustIssuerResult ? "local: ok" : "local: failed");
+
+                } else {
+                    log.error("Local check failed.");
+                }
+
+                // Matched=false? Iterate through the TermsOfUse (ToUs)
+                if (!trustIssuerResult) {
                     List<TermOfUse> termsOfUse = w3cVc.getTermsOfUse();
-                    Iterator<TermOfUse> itnToU = termsOfUse.iterator();
-                    while (itnToU.hasNext()) {
-                        TermOfUse termOfUse = itnToU.next();
-                        Iterator<String> itnSchemes = termOfUse.getTrustScheme().iterator();
-                        while (itnSchemes.hasNext()) {
-                            String trustScheme = itnSchemes.next();
+                    // Next ToU
+                    for (TermOfUse termOfUse: termsOfUse) {
+                        String touType = termOfUse.getType();
+                        // ToU type known
+                        if (touType.equals(trainType)) {
+                            log.info("Known ToU Type: " + touType);
+                            // Next Scheme
+                            for (String trustScheme: termOfUse.getTrustScheme()) {
+                                // Call Train API
+                                TrainAtvApi trainAtvApi = new TrainAtvApi();
+                                trainAtvApi.getApiClient().setBasePath(trainUrl);
+                                TRAINATVRequestParams trainAtvRequestParams = new TRAINATVRequestParams();
+                                trainAtvRequestParams.setIssuer(issuer);
+                                trainAtvRequestParams.setTrustSchemePointer(trustScheme);
+                                TRAINATVResult trainAtvResult = null;
+                                try {
+                                    trainAtvResult = trainAtvApi.atvtrainApiV1SsiPost(trainAtvRequestParams);
 
-                            TrainAtvApi trainAtvApi = new TrainAtvApi();
-                            trainAtvApi.getApiClient().setBasePath(trainUrl);
-                            TRAINATVRequestParams trainAtvRequestParams = new TRAINATVRequestParams();
-                            trainAtvRequestParams.setIssuer(issuer);
-                            trainAtvRequestParams.setTrustSchemePointer(trustScheme);
-                            TRAINATVResult trainAtvResult = null;
-                            try {
-                                trainAtvResult = trainAtvApi.atvtrainApiV1SsiPost(trainAtvRequestParams);
+                                    // Answer? Yes
+                                    log.debug("Train API request: " + trainAtvRequestParams.toString());
+                                    log.debug("Train API response: " + trainAtvResult.toString());
 
-                                log.debug("Train API request: " + trainAtvRequestParams.toString());
-                                log.debug("Train API response: " + trainAtvResult.toString());
+                                    // Matched?
+                                    trustIssuerResult = (trainAtvResult.getVerificationStatus() == TRAINATVResult.VerificationStatusEnum.OK);
+                                    log.info(trustIssuerResult ? "train: ok" : "train: failed");
 
-                                boolean trustIssuerResult = (trainAtvResult.getVerificationStatus() == TRAINATVResult.VerificationStatusEnum.OK);
-                                log.info(trustIssuerResult ? "yes" : "no");
-                                trustIssuersResult = trustIssuersResult && trustIssuerResult;
+                                    // Matched? Yes
+                                    if (trustIssuerResult) {
+                                        break;
+                                    }
 
-                            } catch (io.identiproof.train.ApiException e) {
-                                log.error("Could not communicate with TRAIN API: " + e.getMessage());
-                                int code = e.getCode();
-                                if (code == 404 || (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class))) {
-                                    log.error("Train API is inaccesible.");
-                                    trainApiIsInaccessible = true;
-                                    break;
+                                // Answer? No
+                                } catch (io.identiproof.train.ApiException e) {
+                                    log.error("Could not communicate with TRAIN API: " + e.getMessage());
+                                    int code = e.getCode();
+                                    if (code == 404 || (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class))) {
+                                        // If API is inaccessible, don't continue trying to call it.
+                                        log.error("Train API is inaccesible.");
+                                        break;
+                                    }
                                 }
+                            } // loop over trustScheme
 
-                            }
-                            if (trainApiIsInaccessible) {
+                        // if type is unknown (not TRAIN).
+                        } else {
+                            log.info("Unknown ToU Type: " + touType);
+                            if (! ignoreUnknownTrustType) {
+                                log.error("Ignore ToU Type flag is false. Exiting with fail status.");
+                                // Ignore? No
                                 break;
                             }
-                        } // loop over trustScheme
+                        }
                     } // loop over ToU
-                } // if VP contains ToU
+                } // Matched=false?
 
-                // Fallback: Check if Issuer is in a Table.
-                if (! vcContainsToU || trainApiIsInaccessible) {
-                    boolean trustIssuerResult = trustedIssuers.contains(issuer);
-                    log.info(trustIssuerResult ? "yes" : "no");
-                    trustIssuersResult = trustIssuersResult && trustIssuerResult;
-                }
+                trustIssuersResult = trustIssuersResult && trustIssuerResult;
 
             } // loop over VCs
 

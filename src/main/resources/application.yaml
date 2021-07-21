@@ -18,8 +18,10 @@ suv:
       signatureAlgorithm:
         - CLSignature2019
 
-  trainUrl: "https://virtserver.swaggerhub.com/train8/atv/1.0.0"
-#  trainUrl: "https://essif.trust-scheme.de/atvtrain/api/v1/ssi"
+  trainType: "https://train.trust-scheme.de/info/"
+  trainUrl: "https://essif.trust-scheme.de"
+#  trainUrl: "https://virtserver.swaggerhub.com/train8/atv/1.0.0"
+  ignoreUnknownTrustType: false
 
   trustedIssuers:
     - "https://vc.bge.verifiablecredentials.net"
