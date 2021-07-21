@@ -105,14 +105,6 @@ public class SUVConfiguration {
         this.trainType = trainType;
     }
 
-    public boolean isIgnoreUnknownTrustType() {
-        return ignoreUnknownTrustType;
-    }
-
-    public void setIgnoreUnknownTrustType(boolean ignoreUnknownTrustType) {
-        this.ignoreUnknownTrustType = ignoreUnknownTrustType;
-    }
-
     public List<String> getTrustedIssuers() {
         return trustedIssuers;
     }

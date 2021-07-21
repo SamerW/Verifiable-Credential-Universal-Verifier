@@ -163,10 +163,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
         String lastReason = "";
 
         log.info("Loop Over VPs");
-        Iterator<Vp> itn = vps.iterator();
-        while (itn.hasNext()) {
-            Vp vp = itn.next();
-
+        for (Vp vp: vps) {
             String requestVpFormat = vp.getFormat();
             Object requestVpPresentation = vp.getPresentation();
 
@@ -276,45 +273,42 @@ public class AccessDecisionApiController implements AccessDecisionApi {
         return verifiedVps;
     }
 
-    private Map<Vp, Boolean> trustCheck(Map<Vp, W3cVcSkelsList> verifiedVps) {
+    private W3cVcSkelsList trustCheck(Map<Vp, W3cVcSkelsList> verifiedVps) {
         String trainUrl = SUVConfiguration.getTrainUrl();
         String trainType = SUVConfiguration.getTrainType();
-        boolean ignoreUnknownTrustType = SUVConfiguration.isIgnoreUnknownTrustType();
         List<String> trustedIssuers = SUVConfiguration.getTrustedIssuers();
 
-        Map<Vp, Boolean> trustedVps = new HashMap<Vp, Boolean>();
+        W3cVcSkelsList trustedVcs = new W3cVcSkelsList();
 
         log.info("Loop Over VPs");
-        Iterator<Vp> itn = verifiedVps.keySet().iterator();
-        while (itn.hasNext()) {
-            Vp vp = itn.next();
-            boolean trustIssuersResult = true;
+        for (Vp vp: verifiedVps.keySet()) {
 
-            W3cVcSkelsList w3cVcs = verifiedVps.get(vp);
-            Iterator<W3cVc> itnVc = w3cVcs.iterator();
-            boolean trainApiIsInaccessible = false;
-            while (itnVc.hasNext()) {
-                W3cVc w3cVc = itnVc.next();
-                String issuer = w3cVc.getIssuer();
+            for (W3cVc vc : verifiedVps.get(vp)) {
+                String issuer = vc.getIssuer();
 
                 log.info("Trust " + issuer + "?");
 
-                boolean trustIssuerResult = false;
+                boolean isMatch = false;
 
                 // Check if Issuer against local list.
                 if (trustedIssuers != null) {
-                    trustIssuerResult = trustedIssuers.contains(issuer);
-                    log.info(trustIssuerResult ? "local: ok" : "local: failed");
+                    isMatch = trustedIssuers.contains(issuer);
+                    log.info(isMatch ? "local: ok" : "local: failed");
+
+                    // Matched? Yes
+                    if (isMatch) {
+                        // Add VC to Trusted list
+                        trustedVcs.add(vc);
+                    }
 
                 } else {
                     log.error("Local check failed.");
                 }
 
-                // Matched=false? Iterate through the TermsOfUse (ToUs)
-                if (!trustIssuerResult) {
-                    List<TermOfUse> termsOfUse = w3cVc.getTermsOfUse();
+                // Matched? No
+                if (!isMatch) {
                     // Next ToU
-                    for (TermOfUse termOfUse: termsOfUse) {
+                    for (TermOfUse termOfUse: vc.getTermsOfUse()) {
                         String touType = termOfUse.getType();
                         // ToU type known
                         if (touType.equals(trainType)) {
@@ -331,16 +325,19 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                                 try {
                                     trainAtvResult = trainAtvApi.atvtrainApiV1SsiPost(trainAtvRequestParams);
 
-                                    // Answer? Yes
+                                    // Connected? Yes
                                     log.debug("Train API request: " + trainAtvRequestParams.toString());
                                     log.debug("Train API response: " + trainAtvResult.toString());
 
                                     // Matched?
-                                    trustIssuerResult = (trainAtvResult.getVerificationStatus() == TRAINATVResult.VerificationStatusEnum.OK);
-                                    log.info(trustIssuerResult ? "train: ok" : "train: failed");
+                                    isMatch = (trainAtvResult.getVerificationStatus() == TRAINATVResult.VerificationStatusEnum.OK);
+                                    log.info(isMatch ? "train: ok" : "train: failed");
 
                                     // Matched? Yes
-                                    if (trustIssuerResult) {
+                                    if (isMatch) {
+                                        // Add VC to Trusted list
+                                        trustedVcs.add(vc);
+                                        // Break Scheme loop
                                         break;
                                     }
 
@@ -351,6 +348,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                                     if (code == 404 || (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class))) {
                                         // If API is inaccessible, don't continue trying to call it.
                                         log.error("Train API is inaccesible.");
+                                        // break the scheme loop
                                         break;
                                     }
                                 }
@@ -359,41 +357,26 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                         // if type is unknown (not TRAIN).
                         } else {
                             log.info("Unknown ToU Type: " + touType);
-                            if (! ignoreUnknownTrustType) {
-                                log.error("Ignore ToU Type flag is false. Exiting with fail status.");
-                                // Ignore? No
-                                break;
-                            }
+                        }
+
+                        // break the ToU loop if Matched.
+                        if (isMatch) {
+                            break;
                         }
                     } // loop over ToU
                 } // Matched=false?
-
-                trustIssuersResult = trustIssuersResult && trustIssuerResult;
-
             } // loop over VCs
-
-            trustedVps.put(vp, trustIssuersResult);
-
         } // loop over VPs
 
-        return trustedVps;
+        return trustedVcs;
     }
 
-    private io.identiproof.suv.model.W3cVcSkelsList policyMatch(Map<Vp, W3cVcSkelsList> trustedVps, Object policyMatch, String policyRegistryUrl) throws BadVpJwtException, IOException, PolicyMatchingException {
+    private io.identiproof.suv.model.W3cVcSkelsList policyMatch(W3cVcSkelsList trustedVcs, Object policyMatch, String policyRegistryUrl) throws BadVpJwtException, IOException, PolicyMatchingException {
         String policyMatchUrl = SUVConfiguration.getPolicyMatchUrl();
 
         // Set response variables
         boolean granted = false;
         io.identiproof.suv.model.W3cVcSkelsList atts = null;
-
-        log.info("Combine verified VCs on all VPs");
-        W3cVcSkelsList allVcSkelsList = new W3cVcSkelsList();
-        Iterator<Vp> itn = trustedVps.keySet().iterator();
-        while (itn.hasNext()) {
-            Vp vp = itn.next();
-            W3cVcSkelsList w3cVcSkelsList = trustedVps.get(vp);
-            allVcSkelsList.addAll(w3cVcSkelsList);
-        }
 
         if (policyMatchUrl != null) {
             // Validation
@@ -402,7 +385,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             ValidateRequest validateRequest = new ValidateRequest();
             validateRequest.setPolicyMatch(policyMatch);
             validateRequest.setPolicyRegistryUrl(policyRegistryUrl);
-            validateRequest.setVcs(allVcSkelsList);
+            validateRequest.setVcs(trustedVcs);
 
             io.identiproof.verifier.api.AccessDecisionApi accessDecisionApi = new io.identiproof.verifier.api.AccessDecisionApi();
             accessDecisionApi.getApiClient().setBasePath(policyMatchUrl);
@@ -415,7 +398,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
                     if (granted) {
                         // Convert received W3C skeletons to SUV format and save in atts.
-                        atts = convertW3cFromVerifierToSuv(allVcSkelsList);
+                        atts = convertW3cFromVerifierToSuv(trustedVcs);
 
                     } else {
                         PolicyMatchingException policyMatchingException = new PolicyMatchingException();
@@ -446,7 +429,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
         } else {
             log.info("Call Policy Match API internally");
             // ToDo: Implement Internal Policy Matching
-            atts = convertW3cFromVerifierToSuv(allVcSkelsList);
+            atts = convertW3cFromVerifierToSuv(trustedVcs);
         }
 
         return atts;
@@ -456,10 +439,8 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
         io.identiproof.suv.model.W3cVcSkelsList atts = new io.identiproof.suv.model.W3cVcSkelsList();
 
-        Iterator<io.identiproof.verifier.model.W3cVc> vcIterator = allVcSkelsList.iterator();
-        while (vcIterator.hasNext()) {
+        for (W3cVc w3cVcDb: allVcSkelsList) {
             io.identiproof.suv.model.W3cVc w3cVc = new io.identiproof.suv.model.W3cVc();
-            io.identiproof.verifier.model.W3cVc w3cVcDb = vcIterator.next();
             w3cVc.setId(w3cVcDb.getId());
             w3cVc.setIssuer(w3cVcDb.getIssuer());
             w3cVc.setIssuanceDate(w3cVcDb.getIssuanceDate());
@@ -467,11 +448,8 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             w3cVc.setAtContext(w3cVcDb.getAtContext());
             w3cVc.setType(w3cVcDb.getType());
             w3cVc.setCredentialSubject(w3cVcDb.getCredentialSubject());
-            List<TermOfUse> termsOfUseDb = w3cVcDb.getTermsOfUse();
             List<io.identiproof.suv.model.TermOfUse> termsOfUse = new ArrayList<io.identiproof.suv.model.TermOfUse>();
-            Iterator<TermOfUse> itn2 = termsOfUseDb.iterator();
-            while (itn2.hasNext()) {
-                TermOfUse termOfUseDb = itn2.next();
+            for (TermOfUse termOfUseDb: w3cVcDb.getTermsOfUse()) {
                 io.identiproof.suv.model.TermOfUse termOfUse = new io.identiproof.suv.model.TermOfUse();
                 termOfUse.setType(termOfUseDb.getType());
                 termOfUse.setTrustScheme(termOfUseDb.getTrustScheme());
@@ -531,13 +509,8 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             }
 
             log.info("* Trust Check");
-            Map<Vp, Boolean> trustedVps = trustCheck(verifiedVps);
-            Iterator<Vp> trustedItn = trustedVps.keySet().iterator();
-            boolean trustCheck = true;
-            while (trustedItn.hasNext()) {
-                Vp vp = trustedItn.next();
-                trustCheck = trustCheck && trustedVps.get(vp);
-            }
+            W3cVcSkelsList trustedVcs = trustCheck(verifiedVps);
+            boolean trustCheck = ! trustedVcs.isEmpty();
             if (! trustCheck) {
                 // 003 one or more of the VC Issuer’s are not trusted;
                 AccessDecisionResponse accessDecisionResponse = new AccessDecisionResponse();
@@ -552,7 +525,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
             io.identiproof.suv.model.W3cVcSkelsList atts = null;
             try {
-                atts = policyMatch(verifiedVps, policyMatch, policyRegistryUrl);
+                atts = policyMatch(trustedVcs, policyMatch, policyRegistryUrl);
 
             } catch (PolicyMatchingException e) {
                 if (e.getErrorCode() == HttpStatus.OK) {
