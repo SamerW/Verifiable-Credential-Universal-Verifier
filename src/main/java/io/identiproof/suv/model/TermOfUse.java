@@ -36,11 +36,34 @@ import java.util.Objects;
 
 
 public class TermOfUse {
+    @JsonProperty("id")
+    private String id = null;
+
     @JsonProperty("type")
     private String type = null;
 
     @JsonProperty("trustScheme")
     private List<String> trustScheme = null;
+
+    public TermOfUse id(String id) {
+        this.id = id;
+        return this;
+    }
+
+    /**
+     * Get id
+     * @return id
+     **/
+    @ApiModelProperty(required = true, value = "")
+    @NotNull
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public TermOfUse type(String type) {
         this.type = type;

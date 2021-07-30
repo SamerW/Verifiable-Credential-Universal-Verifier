@@ -18,9 +18,17 @@ suv:
       signatureAlgorithm:
         - CLSignature2019
 
-  trainType: "https://train.trust-scheme.de/info/"
-  trainUrl: "https://essif.trust-scheme.de"
-#  trainUrl: "https://virtserver.swaggerhub.com/train8/atv/1.0.0"
+  train:
+    -
+      id: https://essif.trust-scheme.de/atvtrain_vc
+      type: https://gitlab.grnet.gr/essif-lab/infrastructure/fraunhofer/train-source-code
+      trustScheme:
+        - domain_registers.vc.train.trust-scheme.de
+    -
+      id: https://essif.trust-scheme.de/atvtrain_vc
+      type: https://train.trust-scheme.de/info/
+      trustScheme:
+        - domain_registers.vc.train.trust-scheme.de
 
   trustedIssuers:
     - "https://vc.bge.verifiablecredentials.net"
@@ -35,3 +43,4 @@ suv:
     - "https://vc.dvla.verifiablecredentials.net"
 
   policyMatchUrl: http://localhost:8081
+  policyFormat: Identiproof

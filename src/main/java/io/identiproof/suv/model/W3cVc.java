@@ -13,28 +13,25 @@
 //    License for more details. 
 // 
 //    You should have received a copy of the GNU Lesser General Public License 
-//    along with SUV.  If not, see <https://www.gnu.org/licenses/>. 
+//    along with SUV.  If not, see <https://www.gnu.org/licenses/>.
 
-// Copyright (2021) Verifiable Credentials Ltd
 package io.identiproof.suv.model;
 
+import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
-import org.springframework.validation.annotation.Validated;
-
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import org.springframework.validation.annotation.Validated;
+import javax.validation.Valid;
+import javax.validation.constraints.*;
 
 /**
- * A VC Skeleton object must contain an id, a @context list, a type list, and a set of subject properties. cardImage is an optional field containing an  URL for the card icon to be presented on the wallet app.
+ * A W3C VC Skeleton object must contain an id, a @context list, a type list, and a set of subject properties. cardImage is an optional field containing an  URL for the card icon to be presented on the wallet app.
  */
-@ApiModel(description = "A VC Skeleton object must contain an id, a @context list, a type list, and a set of subject properties. cardImage is an optional field containing an  URL for the card icon to be presented on the wallet app.")
+@Schema(description = "A W3C VC Skeleton object must contain an id, a @context list, a type list, and a set of subject properties. cardImage is an optional field containing an  URL for the card icon to be presented on the wallet app.")
 @Validated
-@javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.SpringCodegen", date = "2021-02-15T14:19:17.745Z[Europe/London]")
+@javax.annotation.Generated(value = "io.swagger.codegen.v3.generators.java.SpringCodegen", date = "2021-07-30T17:10:13.835711+01:00[Europe/London]")
 
 
 public class W3cVc {
@@ -62,7 +59,11 @@ public class W3cVc {
   private Object credentialSubject = null;
 
   @JsonProperty("termsOfUse")
+  @Valid
   private List<TermOfUse> termsOfUse = null;
+
+  @JsonProperty("credentialSchema")
+  private CredentialSchema credentialSchema = null;
 
   public W3cVc id(String id) {
     this.id = id;
@@ -73,10 +74,10 @@ public class W3cVc {
    * Get id
    * @return id
    **/
-  @ApiModelProperty(required = true, value = "")
-  @NotNull
+  @Schema(required = true, description = "")
+      @NotNull
 
-  public String getId() {
+    public String getId() {
     return id;
   }
 
@@ -93,10 +94,10 @@ public class W3cVc {
    * Get issuer
    * @return issuer
    **/
-  @ApiModelProperty(required = true, value = "")
-  @NotNull
+  @Schema(required = true, description = "")
+      @NotNull
 
-  public String getIssuer() {
+    public String getIssuer() {
     return issuer;
   }
 
@@ -113,10 +114,10 @@ public class W3cVc {
    * Get issuanceDate
    * @return issuanceDate
    **/
-  @ApiModelProperty(required = true, value = "")
-  @NotNull
+  @Schema(required = true, description = "")
+      @NotNull
 
-  public String getIssuanceDate() {
+    public String getIssuanceDate() {
     return issuanceDate;
   }
 
@@ -133,10 +134,10 @@ public class W3cVc {
    * Get expirationDate
    * @return expirationDate
    **/
-  @ApiModelProperty(required = true, value = "")
-  @NotNull
+  @Schema(required = true, description = "")
+      @NotNull
 
-  public String getExpirationDate() {
+    public String getExpirationDate() {
     return expirationDate;
   }
 
@@ -157,8 +158,8 @@ public class W3cVc {
   /**
    * Get _atContext
    * @return _atContext
-  **/
-  @ApiModelProperty(required = true, value = "")
+   **/
+  @Schema(required = true, description = "")
       @NotNull
 
     public List<String> getAtContext() {
@@ -182,8 +183,8 @@ public class W3cVc {
   /**
    * Get type
    * @return type
-  **/
-  @ApiModelProperty(required = true, value = "")
+   **/
+  @Schema(required = true, description = "")
       @NotNull
 
     public List<String> getType() {
@@ -202,8 +203,8 @@ public class W3cVc {
   /**
    * Get credentialSubject
    * @return credentialSubject
-  **/
-  @ApiModelProperty(required = true, value = "")
+   **/
+  @Schema(required = true, description = "")
       @NotNull
 
     public Object getCredentialSubject() {
@@ -219,14 +220,21 @@ public class W3cVc {
     return this;
   }
 
+  public W3cVc addTermsOfUseItem(TermOfUse termsOfUseItem) {
+    if (this.termsOfUse == null) {
+      this.termsOfUse = new ArrayList<TermOfUse>();
+    }
+    this.termsOfUse.add(termsOfUseItem);
+    return this;
+  }
+
   /**
    * Get termsOfUse
    * @return termsOfUse
    **/
-  @ApiModelProperty(required = true, value = "")
-  @NotNull
-
-  public List<TermOfUse> getTermsOfUse() {
+  @Schema(description = "")
+      @Valid
+    public List<TermOfUse> getTermsOfUse() {
     return termsOfUse;
   }
 
@@ -234,44 +242,66 @@ public class W3cVc {
     this.termsOfUse = termsOfUse;
   }
 
+  public W3cVc credentialSchema(CredentialSchema credentialSchema) {
+    this.credentialSchema = credentialSchema;
+    return this;
+  }
+
+  /**
+   * Get credentialSchema
+   * @return credentialSchema
+   **/
+  @Schema(description = "")
+  
+    @Valid
+    public CredentialSchema getCredentialSchema() {
+    return credentialSchema;
+  }
+
+  public void setCredentialSchema(CredentialSchema credentialSchema) {
+    this.credentialSchema = credentialSchema;
+  }
+
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(java.lang.Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    W3cVc vcObject = (W3cVc) o;
-    return Objects.equals(this.id, vcObject.id) &&
-        Objects.equals(this.issuer, vcObject.issuer) &&
-        Objects.equals(this.issuanceDate, vcObject.issuanceDate) &&
-        Objects.equals(this.expirationDate, vcObject.expirationDate) &&
-        Objects.equals(this._atContext, vcObject._atContext) &&
-        Objects.equals(this.type, vcObject.type) &&
-        Objects.equals(this.termsOfUse, vcObject.termsOfUse) &&
-        Objects.equals(this.credentialSubject, vcObject.credentialSubject);
+    W3cVc w3cVc = (W3cVc) o;
+    return Objects.equals(this.id, w3cVc.id) &&
+        Objects.equals(this.issuer, w3cVc.issuer) &&
+        Objects.equals(this.issuanceDate, w3cVc.issuanceDate) &&
+        Objects.equals(this.expirationDate, w3cVc.expirationDate) &&
+        Objects.equals(this._atContext, w3cVc._atContext) &&
+        Objects.equals(this.type, w3cVc.type) &&
+        Objects.equals(this.credentialSubject, w3cVc.credentialSubject) &&
+        Objects.equals(this.termsOfUse, w3cVc.termsOfUse) &&
+        Objects.equals(this.credentialSchema, w3cVc.credentialSchema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, issuer, issuanceDate, expirationDate, _atContext, type, credentialSubject, termsOfUse);
+    return Objects.hash(id, issuer, issuanceDate, expirationDate, _atContext, type, credentialSubject, termsOfUse, credentialSchema);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("class W3cVc {\n");
-
+    sb.append("    ").append(toIndentedString(super.toString())).append("\n");
     sb.append("    id: ").append(toIndentedString(id)).append("\n");
     sb.append("    issuer: ").append(toIndentedString(issuer)).append("\n");
     sb.append("    issuanceDate: ").append(toIndentedString(issuanceDate)).append("\n");
     sb.append("    expirationDate: ").append(toIndentedString(expirationDate)).append("\n");
-    sb.append("    @context: ").append(toIndentedString(_atContext)).append("\n");
+    sb.append("    _atContext: ").append(toIndentedString(_atContext)).append("\n");
     sb.append("    type: ").append(toIndentedString(type)).append("\n");
     sb.append("    credentialSubject: ").append(toIndentedString(credentialSubject)).append("\n");
     sb.append("    termsOfUse: ").append(toIndentedString(termsOfUse)).append("\n");
+    sb.append("    credentialSchema: ").append(toIndentedString(credentialSchema)).append("\n");
     sb.append("}");
     return sb.toString();
   }
@@ -280,7 +310,7 @@ public class W3cVc {
    * Convert the given object to string with each line indented by 4 spaces
    * (except the first line).
    */
-  private String toIndentedString(Object o) {
+  private String toIndentedString(java.lang.Object o) {
     if (o == null) {
       return "null";
     }

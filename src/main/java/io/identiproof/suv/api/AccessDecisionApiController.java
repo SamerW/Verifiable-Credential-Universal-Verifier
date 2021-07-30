@@ -274,8 +274,6 @@ public class AccessDecisionApiController implements AccessDecisionApi {
     }
 
     private W3cVcSkelsList trustCheck(Map<Vp, W3cVcSkelsList> verifiedVps) {
-        String trainUrl = SUVConfiguration.getTrainUrl();
-        String trainType = SUVConfiguration.getTrainType();
         List<String> trustedIssuers = SUVConfiguration.getTrustedIssuers();
 
         W3cVcSkelsList trustedVcs = new W3cVcSkelsList();
@@ -307,57 +305,61 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
                 // Matched? No
                 if (!isMatch) {
+                    // get filtered trusted ToU list
+                    List<TermOfUse> tous = SUVConfiguration.filterToUs(vc.getTermsOfUse());
+
                     // Next ToU
-                    for (TermOfUse termOfUse: vc.getTermsOfUse()) {
-                        String touType = termOfUse.getType();
-                        // ToU type known
-                        if (touType.equals(trainType)) {
-                            log.info("Known ToU Type: " + touType);
-                            // Next Scheme
-                            for (String trustScheme: termOfUse.getTrustScheme()) {
+                    for (TermOfUse termOfUse: tous) {
+                        String trainUrl = termOfUse.getId();
+                        String trainType = termOfUse.getType();
+
+                        // ToU id & type
+                        log.info("ToU Id: " + trainUrl);
+                        log.info("ToU Type: " + trainType);
+
+                        // Set the Train API
+                        TrainAtvApi trainAtvApi = new TrainAtvApi();
+                        trainAtvApi.getApiClient().setBasePath(trainUrl);
+
+                        // Next Scheme
+                        for (String trustScheme: termOfUse.getTrustScheme()) {
+                            // Set Train API call
+                            TRAINATVRequestParams trainAtvRequestParams = new TRAINATVRequestParams();
+                            trainAtvRequestParams.setIssuer(issuer);
+                            trainAtvRequestParams.setTrustSchemePointer(trustScheme);
+                            TRAINATVResult trainAtvResult = null;
+                            try {
                                 // Call Train API
-                                TrainAtvApi trainAtvApi = new TrainAtvApi();
-                                trainAtvApi.getApiClient().setBasePath(trainUrl);
-                                TRAINATVRequestParams trainAtvRequestParams = new TRAINATVRequestParams();
-                                trainAtvRequestParams.setIssuer(issuer);
-                                trainAtvRequestParams.setTrustSchemePointer(trustScheme);
-                                TRAINATVResult trainAtvResult = null;
-                                try {
-                                    trainAtvResult = trainAtvApi.atvtrainApiV1SsiPost(trainAtvRequestParams);
+                                trainAtvResult = trainAtvApi.apiV1SsiPost(trainAtvRequestParams);
 
-                                    // Connected? Yes
-                                    log.debug("Train API request: " + trainAtvRequestParams.toString());
-                                    log.debug("Train API response: " + trainAtvResult.toString());
+                                // Connected? Yes
+                                log.debug("Train API request: " + trainAtvRequestParams.toString());
+                                log.debug("Train API response: " + trainAtvResult.toString());
 
-                                    // Matched?
-                                    isMatch = (trainAtvResult.getVerificationStatus() == TRAINATVResult.VerificationStatusEnum.OK);
-                                    log.info(isMatch ? "train: ok" : "train: failed");
+                                // Matched?
+                                isMatch = (trainAtvResult.getVerificationStatus() == TRAINATVResult.VerificationStatusEnum.OK);
+                                log.info(isMatch ? "train: ok" : "train: failed");
 
-                                    // Matched? Yes
-                                    if (isMatch) {
-                                        // Add VC to Trusted list
-                                        trustedVcs.add(vc);
-                                        // Break Scheme loop
-                                        break;
-                                    }
-
-                                // Answer? No
-                                } catch (io.identiproof.train.ApiException e) {
-                                    log.error("Could not communicate with TRAIN API: " + e.getMessage());
-                                    int code = e.getCode();
-                                    if (code == 404 || (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class))) {
-                                        // If API is inaccessible, don't continue trying to call it.
-                                        log.error("Train API is inaccesible.");
-                                        // break the scheme loop
-                                        break;
-                                    }
+                                // Matched? Yes
+                                if (isMatch) {
+                                    // Add VC to Trusted list
+                                    trustedVcs.add(vc);
+                                    // Break Scheme loop
+                                    break;
                                 }
-                            } // loop over trustScheme
 
-                        // if type is unknown (not TRAIN).
-                        } else {
-                            log.info("Unknown ToU Type: " + touType);
-                        }
+                            // Answer? No
+                            } catch (io.identiproof.train.ApiException e) {
+                                log.error("Could not communicate with TRAIN API: " + e.getMessage());
+                                int code = e.getCode();
+                                if (code == 404 || (code == 0 && e.getCause().getClass().isAssignableFrom(ConnectException.class))) {
+                                    // If API is inaccessible, don't continue trying to call it.
+                                    log.error("Train API is inaccesible.");
+                                    // break the scheme loop
+                                    break;
+                                }
+                            }
+                        } // loop over trustScheme
 
                         // break the ToU loop if Matched.
                         if (isMatch) {
@@ -373,7 +375,8 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
     private io.identiproof.suv.model.W3cVcSkelsList policyMatch(W3cVcSkelsList trustedVcs, Object policyMatch, String policyRegistryUrl) throws BadVpJwtException, IOException, PolicyMatchingException {
         String policyMatchUrl = SUVConfiguration.getPolicyMatchUrl();
-
+        String policyFormat = SUVConfiguration.getPolicyFormat();
+        
         // Set response variables
         boolean granted = false;
         io.identiproof.suv.model.W3cVcSkelsList atts = null;
@@ -384,6 +387,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
             ValidateRequest validateRequest = new ValidateRequest();
             validateRequest.setPolicyMatch(policyMatch);
+            validateRequest.setPolicyFormat(policyFormat);
             validateRequest.setPolicyRegistryUrl(policyRegistryUrl);
             validateRequest.setVcs(trustedVcs);
 

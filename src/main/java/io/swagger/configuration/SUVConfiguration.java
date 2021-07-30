@@ -17,11 +17,14 @@
 
 package io.swagger.configuration;
 
+import io.identiproof.suv.model.TermOfUse;
 import io.identiproof.suv.model.Verifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,11 +34,10 @@ import java.util.Map;
 public class SUVConfiguration {
 
     private Map<String, Verifier> verifiers;
-    private String trainUrl;
-    private String trainType;
-    private boolean ignoreUnknownTrustType;
+    private List<TermOfUse> train;
     private List<String> trustedIssuers;
     private String policyMatchUrl;
+    private String policyFormat;
 
     public Map<String, Verifier> getVerifiers() {
         return verifiers;
@@ -89,20 +91,54 @@ public class SUVConfiguration {
         return response;
     }
 
-    public String getTrainUrl() {
-        return trainUrl;
+    public List<TermOfUse> getTrain() {
+        return train;
     }
 
-    public void setTrainUrl(String trainUrl) {
-        this.trainUrl = trainUrl;
+    public void setTrain(List<TermOfUse> train) {
+        this.train = train;
     }
 
-    public String getTrainType() {
-        return trainType;
-    }
+    public List<io.identiproof.verifier.model.TermOfUse> filterToUs(List<io.identiproof.verifier.model.TermOfUse> termsOfUse) {
+        List<io.identiproof.verifier.model.TermOfUse> respToUs = new ArrayList<>();
 
-    public void setTrainType(String trainType) {
-        this.trainType = trainType;
+        Map<String, Map<String, List<String>>> trustedTrain = new HashMap<>();
+        for (TermOfUse touFromConfig: train) {
+            String id = touFromConfig.getId();
+            String type = touFromConfig.getType();
+            List<String> schemes = touFromConfig.getTrustScheme();
+            Map<String, List<String>> intHm;
+            if (trustedTrain.containsKey(id)) {
+                intHm = trustedTrain.get(id);
+            } else {
+                intHm = new HashMap<>();
+            }
+            intHm.put(type, schemes);
+            trustedTrain.put(id, intHm);
+        }
+        for (io.identiproof.verifier.model.TermOfUse touFromIssuer: termsOfUse) {
+            String id = touFromIssuer.getId();
+            String type = touFromIssuer.getType();
+            List<String> schemes = touFromIssuer.getTrustScheme();
+            if (trustedTrain.containsKey(id)) {
+                Map<String, List<String>> trustedTypes = trustedTrain.get(id);
+                if (trustedTypes.containsKey(type)) {
+                    List<String> respSchemes = new ArrayList<>();
+                    List<String> trustedSchemes = trustedTypes.get(type);
+                    for (String scheme: schemes) {
+                        if (trustedSchemes.contains(scheme)) {
+                            respSchemes.add(scheme);
+                        }
+                    }
+                    io.identiproof.verifier.model.TermOfUse respToU = new io.identiproof.verifier.model.TermOfUse();
+                    respToU.setId(id);
+                    respToU.setType(type);
+                    respToU.setTrustScheme(respSchemes);
+                    respToUs.add(respToU);
+                }
+            }
+        }
+        return respToUs;
     }
 
     public List<String> getTrustedIssuers() {
@@ -119,5 +155,13 @@ public class SUVConfiguration {
 
     public void setPolicyMatchUrl(String policyMatchUrl) {
         this.policyMatchUrl = policyMatchUrl;
+    }
+
+    public String getPolicyFormat() {
+        return policyFormat;
+    }
+
+    public void setPolicyFormat(String policyFormat) {
+        this.policyFormat = policyFormat;
     }
 }
