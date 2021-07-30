@@ -33,62 +33,56 @@ import java.util.Map;
 @ConfigurationProperties("suv")
 public class SUVConfiguration {
 
-    private Map<String, Verifier> verifiers;
+    private int defaultVerifier;
+    private List<Verifier> verifiers;
     private List<TermOfUse> train;
     private List<String> trustedIssuers;
     private String policyMatchUrl;
     private String policyFormat;
 
-    public Map<String, Verifier> getVerifiers() {
+    public int getDefaultVerifier() {
+        return defaultVerifier;
+    }
+
+    public void setDefaultVerifier(int defaultVerifier) {
+        this.defaultVerifier = defaultVerifier;
+    }
+
+    public List<Verifier> getVerifiers() {
         return verifiers;
     }
 
-    public void setVerifiers(Map<String, Verifier> verifiers) {
+    public void setVerifiers(List<Verifier> verifiers) {
         this.verifiers = verifiers;
     }
 
-    public Verifier getVerifier(String longFormType, String didType, String algorithm) {
-        Verifier response = null;
+    public Verifier getVerifier(List<String> atContextList, List<String> typeList, String didType, String algorithm) {
 
-        if (longFormType != null && verifiers.containsKey(longFormType)) {
-            response = verifiers.get(longFormType);
-        }
+        if (atContextList != null && typeList != null && didType != null && algorithm != null &&
+                ! atContextList.isEmpty() && ! typeList.isEmpty() && ! didType.isEmpty() && ! algorithm.isEmpty()) {
 
-        // Fallback (if no Verifier has the long form type)
-        if (response == null){
-            Verifier candidate = null;
-            for (String verifierKey : verifiers.keySet()) {
-                Verifier verifier = verifiers.get(verifierKey);
-                String verifierDidType = verifier.getDidMethod();
-                List<String> verifierAlgorithm = verifier.getSignatureAlgorithm();
-                Boolean didMatch = null;
-                if (verifierDidType != null && didType != null) {
-                    didMatch = verifierDidType.equals(didType);
-                }
-                Boolean algorithmMatch = null;
-                if (verifierAlgorithm != null && algorithm != null) {
-                    algorithmMatch = verifierAlgorithm.contains(algorithm);
-                }
-                boolean bothMatch = (didMatch != null && algorithmMatch != null && didMatch && algorithmMatch);
-                boolean anyMatch = (didMatch != null && algorithmMatch == null && didMatch) ||
-                                   (algorithmMatch != null && didMatch == null && algorithmMatch);
-                if (bothMatch) {
-                    response = verifier;
-                } else if (anyMatch && response == null) {
-                    candidate = verifier;
+            for (Verifier verifier: verifiers) {
+                String confAtContext = verifier.getAtContext();
+                String confType = verifier.getType();
+                String confDidMethod = verifier.getDidMethod();
+                List<String> confAlgorithm = verifier.getSignatureAlgorithm();
+
+                // if all matches, return the first occurrence in the Verifiers list.
+                if (atContextList.contains(confAtContext) &&
+                        typeList.contains(confType) &&
+                        confDidMethod.equals(didType) &&
+                        confAlgorithm.contains(algorithm)) {
+                    return verifier;
                 }
             }
-            if (response == null && candidate != null ) {
-                response = candidate;
-            }
         }
 
-        // Final Fallback (use default aka "nullVerifier") if no match
-        if (response == null && verifiers.containsKey("default")) {
-            response = verifiers.get("default");
+        // Final Fallback (use default) if no match or null if default is invalid
+        if (defaultVerifier < verifiers.size()) {
+            return verifiers.get(defaultVerifier);
+        } else {
+            return null;
         }
-
-        return response;
     }
 
     public List<TermOfUse> getTrain() {

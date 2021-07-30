@@ -1,19 +1,30 @@
 ---
 suv:
+  defaultVerifier: 2
   verifiers:
-    default:
-      url: https://dummy.verifier.verifiablecredentials.uk
-      description: Non Crypto JSON-LD Verifier
-    '[#AuthenticatedVP]':
-      url: http://localhost:8081
+    -
       description: Crossword's Identiproof Verifier
+      atContext: https://www.w3.org/2018/credentials/v1
+      type: AuthenticatedVP
+      url: http://localhost:8081
       didMethod: key
       signatureAlgorithm:
         - ES256
         - RS512
-    '[https://www.w3.org/2018/credentials/examples/v1#CredentialManagerPresentation]':
-      url: https://dummy.verifier.verifiablecredentials.uk
+    -
+      description: Dummy MS Verifier
+      atContext: https://www.w3.org/2018/credentials/v1
+      type: VerifiablePresentation
+      url: http://localhost:8083
+      didMethod: ion
+      signatureAlgorithm:
+        - ES256
+        - ES256K
+    -
       description: JSON-LD Verifier (Example 24 from W3C Spec)
+      atContext: https://www.w3.org/2018/credentials/examples/v1
+      type: CredentialManagerPresentation
+      url: https://dummy.verifier.verifiablecredentials.uk
       didMethod: example
       signatureAlgorithm:
         - CLSignature2019

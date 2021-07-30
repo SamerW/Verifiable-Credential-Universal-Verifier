@@ -52,7 +52,7 @@ public class SwaggerDocumentationConfig {
             .license("LGPL v3.0")
             .licenseUrl("https://www.gnu.org/licenses/lgpl-3.0.txt")
             .termsOfServiceUrl("https://www.crosswordcybersecurity.com")
-            .version("1.0.4")
+            .version("1.0.5")
             .contact(new Contact("","", "ioram.sette@crosswordcybersecurity.com"))
             .build();
     }

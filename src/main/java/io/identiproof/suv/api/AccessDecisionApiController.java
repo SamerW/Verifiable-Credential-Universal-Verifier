@@ -113,27 +113,30 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
     private Verifier chooseVerifier(Map<String, Object> requestVp) throws BadVpJwtException, IOException {
 
+        List<String> atContextList = null;
+        List<String> typeList = null;
         String didType = null;
         String algorithm = null;
 
-
-        String longFormType = null;
         if (requestVp != null) {
 
-            // Find VP type and get Verifier details
-            if (requestVp.containsKey("@context") && requestVp.containsKey("type")) {
-                List<String> atContextList = (List<String>) requestVp.get("@context");
-                List<String> typeList = (List<String>) requestVp.get("type");
-                if (! atContextList.isEmpty() && ! typeList.isEmpty()) {
-                    String atContext = atContextList.size() > 1 ? atContextList.get(1) : "";
-                    String type = typeList.size() > 1 ? typeList.get(1) : "";
-                    if (! type.equals("")) {
-                        longFormType = atContext + "#" + type;
-                    }
+            // Pick @context
+            if (requestVp.containsKey("@context")) {
+                atContextList = (List<String>) requestVp.get("@context");
+                if (atContextList.isEmpty()) {
+                    atContextList = null;
                 }
             }
 
-            // Pick the DID type and JSON-LD proof type (crypto algorithm) if exists
+            // Pick type
+            if (requestVp.containsKey("type")) {
+                typeList = (List<String>) requestVp.get("type");
+                if (typeList.isEmpty()) {
+                    typeList = null;
+                }
+            }
+
+            // Pick the DID type
             if (requestVp.containsKey("holder") && requestVp.get("holder") != null && String.class.isAssignableFrom(requestVp.get("holder").getClass())) {
                 String issuer = (String) requestVp.get("holder");
                 if (issuer.startsWith("did:")) {
@@ -141,6 +144,8 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                     didType = didFields[1];
                 }
             }
+
+            // Pick JSON-LD proof type (crypto algorithm)
             if (requestVp.containsKey("proof") && requestVp.get("proof") != null && Map.class.isAssignableFrom(requestVp.get("proof").getClass())) {
                 Map<String, String> proof = (Map<String, String>) requestVp.get("proof");
                 if (proof.containsKey("type") && proof.get("type") != null) {
@@ -150,7 +155,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
         }
 
-        Verifier verifier = SUVConfiguration.getVerifier(longFormType, didType, algorithm);
+        Verifier verifier = SUVConfiguration.getVerifier(atContextList, typeList, didType, algorithm);
 
         return verifier;
     }

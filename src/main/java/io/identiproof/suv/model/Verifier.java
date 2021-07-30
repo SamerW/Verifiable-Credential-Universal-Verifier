@@ -20,18 +20,12 @@ package io.identiproof.suv.model;
 import java.util.List;
 
 public class Verifier {
-    private String url;
     private String description;
+    private String atContext;
+    private String type;
+    private String url;
     private String didMethod;
     private List<String> signatureAlgorithm;
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
 
     public String getDescription() {
         return description;
@@ -39,6 +33,30 @@ public class Verifier {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getAtContext() {
+        return atContext;
+    }
+
+    public void setAtContext(String atContext) {
+        this.atContext = atContext;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getUrl() {
+        return url;
+    }
+
+    public void setUrl(String url) {
+        this.url = url;
     }
 
     public String getDidMethod() {
