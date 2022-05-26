@@ -1,6 +1,5 @@
 # Simple Universal Verifier (SUV)
-Zayed University as part of Sindibad project and Crossword Cybersecurity Plc designed the SUV as part of the eSSIF-lab project have published the 
-design and APIs, and are making the source code open source. The SUV is designed to plug into an 
+Zayed University as part of Sindibad project and Crossword Cybersecurity Plc as part of the eSSIF-lab project designed the SUV verifier and have published the design and APIs, and are making the source code open source. The SUV is designed to plug into an 
 OpenId Connect (OIDC) Relying Party (RP), and to receive the new Verifiable Presentation (VP) claim 
 format that is being defined by the OIDC Connect group. The SUV is given the VP, in any format, 
 containing any type of proof/crypto and it will attempt to validate it. It does this by evaluating 
