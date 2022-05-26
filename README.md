@@ -1,5 +1,5 @@
 # Simple Universal Verifier (SUV)
-Crossword Cybersecurity Plc designed the SUV as part of the eSSIF-lab project and have published the 
+Zayed university as part of Sindibad project and Crossword Cybersecurity Plc designed the SUV as part of the eSSIF-lab project have published the 
 design and APIs, and are making the source code open source. The SUV is designed to plug into an 
 OpenId Connect (OIDC) Relying Party (RP), and to receive the new Verifiable Presentation (VP) claim 
 format that is being defined by the OIDC Connect group. The SUV is given the VP, in any format, 
@@ -30,5 +30,5 @@ Change default port value in application.properties
 
 ## License
 
-SUV developed by Crossword Cybersecurity is an open source project licensed under the
+Open source project licensed under the
 [GNU Lesser General Public License v3](https://www.gnu.org/licenses/lgpl-3.0.txt).
