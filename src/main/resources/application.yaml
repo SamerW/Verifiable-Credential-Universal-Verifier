@@ -6,7 +6,7 @@ suv:
       description: Crossword's Identiproof Verifier
       atContext: https://www.w3.org/2018/credentials/v1
       type: AuthenticatedVP
-      url: http://localhost:8081
+      url: http://localhost:8083
       didMethod: key
       signatureAlgorithm:
         - ES256
@@ -24,7 +24,7 @@ suv:
       description: JSON-LD Verifier (Example 24 from W3C Spec)
       atContext: https://www.w3.org/2018/credentials/examples/v1
       type: CredentialManagerPresentation
-      url: https://dummy.verifier.verifiablecredentials.uk
+      url: http://localhost:8083
       didMethod: example
       signatureAlgorithm:
         - CLSignature2019
@@ -42,16 +42,11 @@ suv:
         - domain_registers.vc.train.trust-scheme.de
 
   trustedIssuers:
-    - "https://vc.bge.verifiablecredentials.net"
-    - "https://vc.bigbank.verifiablecredentials.net"
-    - "https://vc.canterbury.verifiablecredentials.net"
-    - "https://vc.cleanwater.verifiablecredentials.net"
-    - "https://vc.nhs.verifiablecredentials.net"
-    - "https://vc.kent.verifiablecredentials.net"
-    - "https://vc.poa.verifiablecredentials.net"
-    - "https://vc.smallbank.verifiablecredentials.net"
-    - "https://gvc.nhs.verifiablecredentials.net"
-    - "https://vc.dvla.verifiablecredentials.net"
+    - https://dvla.gov.uk:8095/v1
+    - https://bigbank.com:8090/v1
+    - https://canterbury.gov.uk:8092/v1
+    - did:ion:EiAUeAySrc1qgPucLYI_ytfudT8bFxUETNolzz4PCdy1bw:eyJkZWx0YSI6eyJwYXRjaGVzIjpbeyJhY3Rpb24iOiJyZXBsYWNlIiwiZG9jdW1lbnQiOnsicHVibGljS2V5cyI6W3siaWQiOiJzaWdfMjRiYjMwNzQiLCJwdWJsaWNLZXlKd2siOnsiY3J2Ijoic2VjcDI1NmsxIiwia3R5IjoiRUMiLCJ4IjoiRDlqYUgwUTFPZW1XYVVfeGtmRzBJOVoyYnctOFdLUFF2TWt2LWtkdjNxUSIsInkiOiJPclVUSzBKSWN0UnFQTHRCQlQxSW5iMTdZS29sSFJvX1kyS0Zfb3YyMEV3In0sInB1cnBvc2VzIjpbImF1dGhlbnRpY2F0aW9uIiwiYXNzZXJ0aW9uTWV0aG9kIl0sInR5cGUiOiJFY2RzYVNlY3AyNTZrMVZlcmlmaWNhdGlvbktleTIwMTkifV0sInNlcnZpY2VzIjpbeyJpZCI6ImxpbmtlZGRvbWFpbnMiLCJzZXJ2aWNlRW5kcG9pbnQiOnsib3JpZ2lucyI6WyJodHRwczovL2RpZC53b29kZ3JvdmVkZW1vLmNvbS8iXX0sInR5cGUiOiJMaW5rZWREb21haW5zIn1dfX1dLCJ1cGRhdGVDb21taXRtZW50IjoiRWlBeWF1TVgzRWtBcUg2RVFUUEw4SmQ4alVvYjZXdlZrNUpSamdodEVYWHhDQSJ9LCJzdWZmaXhEYXRhIjp7ImRlbHRhSGFzaCI6IkVpQ1NvajVqSlNOUjBKU0tNZEJ1Y2RuMlh5U2ZaYndWVlNIWUNrREllTHV5NnciLCJyZWNvdmVyeUNvbW1pdG1lbnQiOiJFaUR4Ym1ELTQ5cEFwMDBPakd6VXdoNnY5ZjB5cnRiaU5TbXA3dldwbTREVHpBIn19
+    - did:example:Wz4eUg7SetGfaUVCn8U9d62oDYrUJLuUtcy619
 
-  policyMatchUrl: http://localhost:8081
+  policyMatchUrl: http://localhost:8083
   policyFormat: Identiproof
