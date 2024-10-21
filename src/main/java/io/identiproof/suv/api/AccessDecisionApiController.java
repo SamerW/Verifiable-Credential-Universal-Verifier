@@ -167,29 +167,34 @@ public class AccessDecisionApiController implements AccessDecisionApi {
         HttpStatus lastCode = HttpStatus.NOT_IMPLEMENTED;
         String lastReason = "";
 
-        log.info("Loop Over VPs");
+        log.info(".1. Loop Over VPs");
+        int count = 0;
         for (Vp vp: vps) {
+            count++;
+            log.info("> VP " + String.valueOf(count));
             String requestVpFormat = vp.getFormat();
             Object requestVpPresentation = vp.getPresentation();
 
             // Decode VP if in JWT format.
-            log.info("Decode VP if in JWT format");
+//            log.info("Decode VP if in JWT format");
             Map<String, Object> requestVp = null;
             if (requestVpFormat.equals("jwt_vp")) {
+                log.info(".2.VP JWT - Decoding");
                 requestVp = decodeJwtVp((String) requestVpPresentation);
+                log.info(".2.VP JWT - Decoded");
             } else if(requestVpFormat.equals("ldp_vp")) {
+                log.info(".2.VP JSON-LD - Loading");
                 requestVp = (Map<String, Object>) requestVpPresentation;
+                log.info(".2.VP JSON-LD - Loaded");
             }
 
+            log.info(".3.Choosing Verifier");
             Verifier verifier = chooseVerifier(requestVp);
 
             if (verifier != null) {
-                log.info("Verifier: " + verifier.getDescription());
+                log.info(".3.Chosen Verifier: " + verifier.getDescription());
 
                 // Verification
-                log.info("Call Verifier API");
-                W3cVcSkelsList w3cVcSkelsList = null;
-
                 io.identiproof.verifier.model.Vp verifierVp = new io.identiproof.verifier.model.Vp();
                 verifierVp.setFormat(requestVpFormat);
                 verifierVp.setPresentation(requestVpPresentation);
@@ -202,9 +207,12 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                 VpVerificationApi vpVerificationApi = new VpVerificationApi();
                 vpVerificationApi.getApiClient().setBasePath(verifier.getUrl());
 
+                W3cVcSkelsList w3cVcSkelsList = null;
                 try {
+                    log.info(".4.Calling Verifier API");
                     w3cVcSkelsList = vpVerificationApi.verifyVp(verifyVpRequest);
-                    log.debug("W3C VCs: " + w3cVcSkelsList.toString());
+                    log.debug(".. W3C VCs: " + w3cVcSkelsList.toString());
+                    log.info(".4.Called Verifier API");
 
                     if (w3cVcSkelsList != null && !w3cVcSkelsList.isEmpty()) {
                         verifiedVps.put(vp, w3cVcSkelsList);
@@ -283,20 +291,25 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
         W3cVcSkelsList trustedVcs = new W3cVcSkelsList();
 
-        log.info("Loop Over VPs");
+        log.info(".1. Loop Over VPs");
+        int countvp = 0;
+        int countvc = 0;
         for (Vp vp: verifiedVps.keySet()) {
-
+            countvp++;
+            log.info("> VP " + String.valueOf(countvp));
             for (W3cVc vc : verifiedVps.get(vp)) {
-                String issuer = vc.getIssuer();
+                countvc++;
+                log.info(">> VC " + String.valueOf(countvc));
 
-                log.info("Trust " + issuer + "?");
+                String issuer = vc.getIssuer();
+                log.info(".2. Trust " + issuer + "?");
 
                 boolean isMatch = false;
 
                 // Check if Issuer against local list.
                 if (trustedIssuers != null) {
                     isMatch = trustedIssuers.contains(issuer);
-                    log.info(isMatch ? "local: ok" : "local: failed");
+                    log.info(".2. Trust LOCAL: " + (isMatch ? "ok" : "failed"));
 
                     // Matched? Yes
                     if (isMatch) {
@@ -311,6 +324,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                 // Matched? No
                 if (!isMatch) {
                     // get filtered trusted ToU list
+                    log.info(".2. Trust REMOTE: Filter ToU List");
                     List<TermOfUse> tous = SUVConfiguration.filterToUs(vc.getTermsOfUse());
 
                     // Next ToU
@@ -335,7 +349,9 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                             TRAINATVResult trainAtvResult = null;
                             try {
                                 // Call Train API
+                                log.info(".. Begin: External Call to TRAIN");
                                 trainAtvResult = trainAtvApi.apiV1SsiPost(trainAtvRequestParams);
+                                log.info(".. End: External Call to TRAIN");
 
                                 // Connected? Yes
                                 log.debug("Train API request: " + trainAtvRequestParams.toString());
@@ -343,7 +359,7 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
                                 // Matched?
                                 isMatch = (trainAtvResult.getVerificationStatus() == TRAINATVResult.VerificationStatusEnum.OK);
-                                log.info(isMatch ? "train: ok" : "train: failed");
+                                log.info(".2. Trust REMOTE: " + (isMatch ? "ok" : "failed"));
 
                                 // Matched? Yes
                                 if (isMatch) {
@@ -388,8 +404,6 @@ public class AccessDecisionApiController implements AccessDecisionApi {
 
         if (policyMatchUrl != null) {
             // Validation
-            log.info("Call Policy Match API externally");
-
             ValidateRequest validateRequest = new ValidateRequest();
             validateRequest.setPolicyMatch(policyMatch);
             validateRequest.setPolicyFormat(policyFormat);
@@ -399,8 +413,10 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             io.identiproof.verifier.api.AccessDecisionApi accessDecisionApi = new io.identiproof.verifier.api.AccessDecisionApi();
             accessDecisionApi.getApiClient().setBasePath(policyMatchUrl);
             try {
+                log.info(".1. Begin: Call Policy Match API externally");
                 ValidateResponse validateResponse = accessDecisionApi.validate(validateRequest);
                 log.debug("Validate Response: " + validateResponse.toString());
+                log.info(".1. End: Call Policy Match API externally");
 
                 if (validateResponse != null) {
                     granted = validateResponse.isMatched();
@@ -488,15 +504,15 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             log.info("## START DECISION ##");
             log.debug("Request: " + body.toString());
 
-            log.info("* Read input parameters");
+            log.info("*1* Begin: Read input parameters");
             String challenge = body.getChallenge();
             String rpUrl = body.getRpUrl();
             List<Vp> vps = body.getVps();
             Object policyMatch = body.getPolicyMatch();
             String policyRegistryUrl = body.getPolicyRegistryUrl();
+            log.info("*1* End: Read input parameters");
 
-            log.info("* VPs Verification");
-
+            log.info("*2* Begin: VPs Verification");
             Map<Vp, W3cVcSkelsList> verifiedVps = null;
 
             try {
@@ -526,8 +542,9 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                 log.info("## END DECISION ##");
                 return new ResponseEntity<AccessDecisionResponse>(HttpStatus.BAD_REQUEST);
             }
+            log.info("*2* End: VPs Verification");
 
-            log.info("* Trust Check");
+            log.info("*3* Begin: Trust Check");
             W3cVcSkelsList trustedVcs = trustCheck(verifiedVps);
             boolean trustCheck = ! trustedVcs.isEmpty();
             if (! trustCheck) {
@@ -539,9 +556,9 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                 log.info("## END DECISION ##");
                 return new ResponseEntity<AccessDecisionResponse>(accessDecisionResponse, HttpStatus.OK);
             }
+            log.info("*3* End: Trust Check");
 
-            log.info("* Policy Match");
-
+            log.info("*4* Begin: Policy Match");
             io.identiproof.suv.model.W3cVcSkelsList atts = null;
             try {
                 atts = policyMatch(trustedVcs, policyMatch, policyRegistryUrl);
@@ -565,12 +582,14 @@ public class AccessDecisionApiController implements AccessDecisionApi {
                 log.info("## END DECISION ##");
                 return new ResponseEntity<AccessDecisionResponse>(HttpStatus.BAD_REQUEST);
             }
+            log.info("*4* End: Policy Match");
 
-            log.info("* Prepare Response Object");
+            log.info("*5* Begin: Prepare Response Object");
             AccessDecisionResponse accessDecisionResponse = new AccessDecisionResponse();
             accessDecisionResponse.setGranted(true);
             accessDecisionResponse.setAtts(atts);
             log.debug("Response: " + accessDecisionResponse.toString());
+            log.info("*5* End: Prepare Response Object");
             log.info("## END DECISION ##");
             return new ResponseEntity<AccessDecisionResponse>(accessDecisionResponse, HttpStatus.OK);
 
