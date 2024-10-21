@@ -17,6 +17,7 @@
 
 package io.identiproof.suv.model;
 
+import java.util.Map;
 import java.util.Objects;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -63,7 +64,7 @@ public class W3cVc {
   private List<TermOfUse> termsOfUse = null;
 
   @JsonProperty("credentialSchema")
-  private CredentialSchema credentialSchema = null;
+  private Map<String, Object> credentialSchema = null;
 
   public W3cVc id(String id) {
     this.id = id;
@@ -242,7 +243,7 @@ public class W3cVc {
     this.termsOfUse = termsOfUse;
   }
 
-  public W3cVc credentialSchema(CredentialSchema credentialSchema) {
+  public W3cVc credentialSchema(Map<String, Object> credentialSchema) {
     this.credentialSchema = credentialSchema;
     return this;
   }
@@ -254,11 +255,11 @@ public class W3cVc {
   @Schema(description = "")
   
     @Valid
-    public CredentialSchema getCredentialSchema() {
+    public Map<String, Object> getCredentialSchema() {
     return credentialSchema;
   }
 
-  public void setCredentialSchema(CredentialSchema credentialSchema) {
+  public void setCredentialSchema(Map<String, Object> credentialSchema) {
     this.credentialSchema = credentialSchema;
   }
 

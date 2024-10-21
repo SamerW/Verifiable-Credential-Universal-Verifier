@@ -457,14 +457,24 @@ public class AccessDecisionApiController implements AccessDecisionApi {
             w3cVc.setAtContext(w3cVcDb.getAtContext());
             w3cVc.setType(w3cVcDb.getType());
             w3cVc.setCredentialSubject(w3cVcDb.getCredentialSubject());
-            List<io.identiproof.suv.model.TermOfUse> termsOfUse = new ArrayList<io.identiproof.suv.model.TermOfUse>();
-            for (TermOfUse termOfUseDb: w3cVcDb.getTermsOfUse()) {
-                io.identiproof.suv.model.TermOfUse termOfUse = new io.identiproof.suv.model.TermOfUse();
-                termOfUse.setType(termOfUseDb.getType());
-                termOfUse.setTrustScheme(termOfUseDb.getTrustScheme());
-                termsOfUse.add(termOfUse);
+            List<TermOfUse> touList = w3cVcDb.getTermsOfUse();
+            if (touList != null) {
+                List<io.identiproof.suv.model.TermOfUse> termsOfUse = new ArrayList<io.identiproof.suv.model.TermOfUse>();
+                for (TermOfUse termOfUseDb: touList) {
+                    io.identiproof.suv.model.TermOfUse termOfUse = new io.identiproof.suv.model.TermOfUse();
+                    termOfUse.setType(termOfUseDb.getType());
+                    termOfUse.setTrustScheme(termOfUseDb.getTrustScheme());
+                    termsOfUse.add(termOfUse);
+                }
+                w3cVc.setTermsOfUse(termsOfUse);
             }
-            w3cVc.setTermsOfUse(termsOfUse);
+            Map<String, Object> schema = (Map<String, Object>) w3cVcDb.getCredentialSchema();
+            if (schema != null) {
+                Map<String, Object> credentialSchema = new HashMap<>();
+                credentialSchema.put("id", schema.get("id"));
+                credentialSchema.put("type", schema.get("type"));
+                w3cVc.setCredentialSchema(credentialSchema);
+            }
             atts.add(w3cVc);
         }
 

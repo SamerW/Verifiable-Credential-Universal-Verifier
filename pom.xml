@@ -65,9 +65,9 @@
         <dependency>
             <groupId>io.identiproof.verifier</groupId>
             <artifactId>suv-verifier-client</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.3</version>
             <scope>system</scope>
-            <systemPath>${basedir}/lib/suv-verifier-client-1.0.0.jar</systemPath>
+            <systemPath>${basedir}/lib/suv-verifier-client-1.0.3.jar</systemPath>
         </dependency>
 
         <dependency>
