@@ -1,0 +1,361 @@
+openapi: 3.0.0
+info:
+  title: Verifier API
+  description: RPC API For Verifier
+  version: '1.0'
+  contact:
+    name: Crossword Cybersecurity Plc.
+    url: 'https://www.crosswordcybersecurity.com'
+    email: ioram.sette@crosswordcybersecurity.com
+    
+tags:
+  - name: VP Verification
+    description: VP Verification API
+  - name: Access Decision
+    description: Access Decision API
+
+servers:
+  - url: "https://verifier.verifiablecredentials.uk"
+
+paths:
+  /v1/verify:
+    post:
+      tags:
+        - VP Verification
+      summary: Verify if VP is legitim and valid
+      description: Verify if a VP is legitim and valid
+      operationId: verifyVp
+      requestBody:
+        description: Verifiable Presentation, RP URL, and Challenge
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/verifyVpRequest"
+            examples:
+              jwt_vp:
+                $ref: "#/components/examples/jwt_vp"
+              ldp_vp:
+                $ref: "#/components/examples/ldp_vp"
+      responses:
+        '200':
+          description: Request Access Decision Response Object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/w3cVcSkelsList"
+        '400':
+          description: The VP or an embedded VC is badly formatted or the cryptography failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Bad Request"
+        '401':
+          description: VC not issued to VC Holder or VCs not all issued to VC holder or VC delegation problem or mismatch between VP and embedded VCs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Unauthorised"
+        '500':
+          description: Something went wrong with the Verifier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Internal Server Error"
+
+  /v1/validate:
+    post:
+      tags:
+        - Access Decision
+      summary: Validate Policy Matching
+      description: Valicate Policy Matching for a set of VCs
+      operationId: validate
+      requestBody:
+        description: Policy Match, Policy Registry URL, set of VCs
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/validateRequest"
+      responses:
+        '200':
+          description: Validate Response Object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/validateResponse"
+        '400':
+          description:  A request parameter is missing or badly formed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Bad Request"
+        '404':
+          description: The policy cannot be found in the policy registry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Not Found"
+        '406':
+          description: The policy format is not acceptable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Not Acceptable"
+        '500':
+          description: Something went wrong with the Policy Matcher e.g. database error or other bug.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Internal Server Error"
+        '503':
+          description: The Policy Registry is currently not available.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Unavailable"
+
+
+components:
+  schemas:
+    verifyVpRequest:
+      type: object
+      properties:
+        vp:
+          $ref: "#/components/schemas/vp"
+        rpurl:
+          type: string
+        challenge:
+          type: string
+      required:
+        - vp
+        - rpurl
+        - challenge
+
+    vp:
+      type: object
+      properties:
+        format:
+          type: string
+        presentation:
+          type: object
+      required:
+        - format
+        - presentation
+
+    w3cVcSkelsList:
+      type: array
+      description: A set of W3C VC Skeletons
+      items:
+        $ref: '#/components/schemas/w3cVc'
+
+    w3cVc:
+      type: object
+      description: >-
+        A W3C VC Skeleton object must contain an id, a @context list, a type list,
+        and a set of subject properties. cardImage is an optional field containing an 
+        URL for the card icon to be presented on the wallet app.
+      properties:
+        id:
+          type: string
+        issuer:
+          type: string
+        issuanceDate:
+          type: string
+        expirationDate:
+          type: string
+        '@context':
+          type: array
+          items:
+            type: string
+        type:
+          type: array
+          items:
+            type: string
+        credentialSubject:
+          type: object
+        termsOfUse:
+          type: array
+          items:
+            $ref: '#/components/schemas/termOfUse'
+        credentialSchema:
+          type: object
+            # $ref: '#/components/schemas/credentialSchema'            
+      example: 
+        id: "http://example.edu/credentials/3732"
+        issuer: "https://vc.verifiablecredentials.net"
+        issuanceDate: "2010-01-01T19:23:24Z"
+        expirationDate: "2020-01-02T19:23:24Z"
+        '@context':
+          - "https://www.w3.org/2018/credentials/v1"
+          - "https://www.kent.ac.uk/VCcontext/v1"
+        type: 
+          - "VerifiableCredential"
+          - "DrivingLicenseCredential"
+        credentialSubject:
+          id: "did:key:jwk:eyJ4IjoiY0NNM0t...CZEw4N0xyTEg0WWYwdFhrIiwiYWxnIjoiRVMyNTYifQ"
+          name: "Fredrik"
+          surname: "Strömberg"
+          driving:
+            name: "Fredrik Strömberg"
+            DOB: "01/01/2000"
+            vehicle: "car, moped, bike"
+      required:
+        - id
+        - issuer
+        - issuanceDate
+        - expirationDate
+        - '@context'
+        - type
+        - credentialSubject
+
+    termOfUse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "https://essif.trust-scheme.de"
+        type:
+          type: string
+          example: "https://train.trust-scheme.de/info/"
+        trustScheme:
+          type: array
+          items:
+            type: string
+          example: ["<member of trustscheme1>", "<member of trustscheme2>"]
+      required:
+        - type
+        - trustScheme
+
+    credentialSchema:
+      type: object
+      properties:
+        id:
+          type: string
+        type: 
+          type: string
+
+    validateRequest:
+      type: object
+      properties:
+        policyMatch:
+          type: object
+          example:
+            action: "GET"
+            target: "https://rp.verifiablecredentials.uk/resource"
+        policyFormat:
+          type: string
+          example: Identiproof
+        policyRegistryUrl:
+          type: string
+          example: "https://registry.verifiablecredentials.uk"
+        vcs:
+          $ref: "#/components/schemas/w3cVcSkelsList"
+      required:
+        - policyMatch
+        - policyRegistryUrl
+        - vcs
+
+    validateResponse:
+      type: object
+      properties:
+        matched: 
+          type: boolean
+          example: true
+        reason:
+          type: string
+          example: "Policy Match failed"
+      required:
+        - matched
+
+    serverResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+            - failed
+        errorMessage:
+          type: string
+      required:
+        - errorMessage
+        - status
+
+  examples:
+    jwt_vp:
+      value:
+        vp:
+          format: "jwt_vp"
+          presentation: "eyJ1c2VybmFtZSI6ImRnMSIsImF0dHNldCI6W3siQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3d3dy5kdmxhLmdvdi51ay9WQ2NvbnRleHQvdjEiXSwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIkRyaXZpbmdMaWNlbnNlQ3JlZGVudGlhbCJdLCJuYW1lIjoiZGFpbmlzIiwic3VybmFtZSI6ImdyaW5iZXJncyIsImRyaXZpbmdMaWNlbnNlIjp7Im5hbWUiOiJkYWluaXMgZ3JpbmJlcmdzIiwiRE9CIjoiMDEvMDEvMjAwMCIsInZlaGljbGVzIjoiY2FyLCBtb3BlZCwgYmlrZSJ9fSx7IkBjb250ZXh0IjpbImh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIiwiaHR0cHM6Ly93d3cua2VudC5hYy51ay9WQ2NvbnRleHQvdjEiXSwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIkRlZ3JlZUNyZWRlbnRpYWwiXSwicHJvcDEiOiJ2YWwxIiwicHJvcDIiOiJ2YWwyIiwiZGVncmVlIjp7InR5cGUiOiJCYWNoZWxvckRlZ3JlZSIsIm5hbWUiOiJCYWNoZWxvciBvZiBTY2llbmNlIGFuZCBBcnRzIn19XSwiYXV0aG5DcmVkcyI6eyJ1c2VybmFtZSI6ImRnMSIsIm90cCI6ImFiY2RlZiJ9fQ=="
+        rpurl: "https://rp.verifiablecredentials.uk"
+        challenge: "ABCDEF123456!@#$%"
+
+    ldp_vp:
+      value:
+        vp:
+          format: "ldp_vp"
+          presentation:
+            "@context":
+              - https://www.w3.org/2018/credentials/v1
+            type:
+              - VerifiablePresentation
+              - WalletXXX
+            verifiableCredential:
+              -
+                "@context":
+                  - https://www.w3.org/2018/credentials/v1
+                  - https://www.w3.org/2018/credentials/examples/v1
+                id: https://example.com/credentials/1872
+                type:
+                  - VerifiableCredential
+                  - IDCardCredential
+                issuer:
+                  id: did:example:issuer
+                issuanceDate: "2010-01-01T19:23:24Z"
+                credentialSubject:
+                  given_name: Fredrik
+                  family_name: Strömberg
+                  birthdate: "1949-01-22"
+                proof:
+                  type: Ed25519Signature2018
+                  created: "2021-03-19T15:30:15Z"
+                  jws: "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..PT8yCqVjj5ZHD0W36zsBQ47oc3El07WGPWaLUuBTOT48IgKI5HDoiFUt9idChT_Zh5s8cF_2cSRWELuD8JQdBw"
+                  proofPurpose: assertionMethod
+                  verificationMethod: "did:example:issuer#keys-1"
+            id: ebc6f1c2
+            holder: "did:example:holder"
+            proof:
+              type: Ed25519Signature2018
+              created: "2021-03-19T15:30:15Z"
+              challenge: "()&)()0__sdf"
+              jws: "yJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..GF5Z6TamgNE8QjE3RbiDOj3n_t25_1K7NVWMUASe_OEzQV63GaKdu235MCS3hIYvepcNdQ_ZOKpGNCf0vIAoDA"
+              proofPurpose: authentication
+              verificationMethod: "did:example:holder#key-1"
+        rpurl: "https://rp.verifiablecredentials.uk"
+        challenge: "ABCDEF123456!@#$%"
+

@@ -1,0 +1,329 @@
+openapi: 3.0.0
+info:
+  title: Simple Universal Verifier (SUV) API
+  description: RPC API For SUV
+  license:
+    name: "LGPL v3.0"
+    url: "https://www.gnu.org/licenses/lgpl-3.0.html"
+  version: '1.0'
+  contact:
+    name: Crossword Cybersecurity Plc.
+    url: 'https://www.crosswordcybersecurity.com'
+    email: ioram.sette@crosswordcybersecurity.com
+    
+tags:
+  - name: Access Decision
+    description: Access Decision API
+
+servers:
+  - url: "https://suv.verifiablecredentials.uk"
+
+paths:
+  /v1/decision:
+    post:
+      tags:
+        - Access Decision
+      summary: Access Decision for a VP
+      description: Request access decision for a VP
+      operationId: decision
+      requestBody:
+        description: Verifiable Presentation, RP URL, Challenge, policyMatch and Policy Registry URL
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/accessDecisionRequest"
+      responses:
+        '200':
+          description: Request Access Decision Response Object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/accessDecisionResponse"
+        '400':
+          description: The VP is badly formatted, or a request parameter is missing or badly formed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Bad Request"
+        '403':
+          description: The VP audience does not match the RP URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Forbidden"
+        '404':
+          description: The policy cannot be found in the policy registry, or a Verifier cannot be found to match the VP type.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Not Found"
+        '500':
+          description: Something went wrong with the SUV e.g. database error or other bug.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Internal Server Error"
+        '503':
+          description: If a Verifier or Policy Registry or Internal DB are currently not available.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/serverResponse'
+              example:
+                status: "failed"
+                errorMessage: "Unavailable"
+
+components:
+  schemas:
+    accessDecisionRequest:
+      type: object
+      properties:
+        vps:
+          type: array
+          items:
+            $ref: "#/components/schemas/vp"
+          example:
+            - 
+              format: "jwt_vp"
+              presentation: "eyJ1c2VybmFtZSI6ImRnMSIsImF0dHNldCI6W3siQGNvbnRleHQiOlsiaHR0cHM6Ly93d3cudzMub3JnLzIwMTgvY3JlZGVudGlhbHMvdjEiLCJodHRwczovL3d3dy5kdmxhLmdvdi51ay9WQ2NvbnRleHQvdjEiXSwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIkRyaXZpbmdMaWNlbnNlQ3JlZGVudGlhbCJdLCJuYW1lIjoiZGFpbmlzIiwic3VybmFtZSI6ImdyaW5iZXJncyIsImRyaXZpbmdMaWNlbnNlIjp7Im5hbWUiOiJkYWluaXMgZ3JpbmJlcmdzIiwiRE9CIjoiMDEvMDEvMjAwMCIsInZlaGljbGVzIjoiY2FyLCBtb3BlZCwgYmlrZSJ9fSx7IkBjb250ZXh0IjpbImh0dHBzOi8vd3d3LnczLm9yZy8yMDE4L2NyZWRlbnRpYWxzL3YxIiwiaHR0cHM6Ly93d3cua2VudC5hYy51ay9WQ2NvbnRleHQvdjEiXSwidHlwZSI6WyJWZXJpZmlhYmxlQ3JlZGVudGlhbCIsIkRlZ3JlZUNyZWRlbnRpYWwiXSwicHJvcDEiOiJ2YWwxIiwicHJvcDIiOiJ2YWwyIiwiZGVncmVlIjp7InR5cGUiOiJCYWNoZWxvckRlZ3JlZSIsIm5hbWUiOiJCYWNoZWxvciBvZiBTY2llbmNlIGFuZCBBcnRzIn19XSwiYXV0aG5DcmVkcyI6eyJ1c2VybmFtZSI6ImRnMSIsIm90cCI6ImFiY2RlZiJ9fQ=="
+            -
+              format: "ldp_vp"
+              presentation:
+                "@context":
+                  - https://www.w3.org/2018/credentials/v1
+                type:
+                  - VerifiablePresentation
+                  - WalletXXX
+                verifiableCredential:
+                  -
+                    "@context":
+                      - https://www.w3.org/2018/credentials/v1
+                      - https://www.w3.org/2018/credentials/examples/v1
+                    id: https://example.com/credentials/1872
+                    type:
+                      - VerifiableCredential
+                      - IDCardCredential
+                    issuer:
+                      id: did:example:issuer
+                    issuanceDate: "2010-01-01T19:23:24Z"
+                    credentialSubject:
+                      given_name: Fredrik
+                      family_name: Strömberg
+                      birthdate: "1949-01-22"
+                    proof:
+                      type: Ed25519Signature2018
+                      created: "2021-03-19T15:30:15Z"
+                      jws: "eyJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..PT8yCqVjj5ZHD0W36zsBQ47oc3El07WGPWaLUuBTOT48IgKI5HDoiFUt9idChT_Zh5s8cF_2cSRWELuD8JQdBw"
+                      proofPurpose: assertionMethod
+                      verificationMethod: "did:example:issuer#keys-1"
+                id: ebc6f1c2
+                holder: "did:example:holder"
+                proof:
+                  type: Ed25519Signature2018
+                  created: "2021-03-19T15:30:15Z"
+                  challenge: "()&)()0__sdf"
+                  jws: "yJhbGciOiJFZERTQSIsImI2NCI6ZmFsc2UsImNyaXQiOlsiYjY0Il19..GF5Z6TamgNE8QjE3RbiDOj3n_t25_1K7NVWMUASe_OEzQV63GaKdu235MCS3hIYvepcNdQ_ZOKpGNCf0vIAoDA"
+                  proofPurpose: authentication
+                  verificationMethod: "did:example:holder#key-1"
+        rpUrl:
+          type: string
+          description: The URL for the Relying Party
+          example: "https://rp.verifiablecredentials.uk"
+        challenge:
+          type: string
+          example: "ABCDEF123456!@#$%"
+        policyRegistryUrl:
+          type: string
+          example: "https://registry.verifiablecredentials.uk"
+        policyMatch:
+          type: object
+          example:
+            type: "Over 18"          
+      required:
+        - vps
+        - rpUrl
+        - challenge
+        - policyRegistryUrl
+        - policyMatch
+
+    vp:
+      type: object
+      properties:
+        format:
+          type: string
+        presentation:
+          type: object
+      required:
+        - format
+        - presentation
+
+    accessDecisionResponse:
+      type: object
+      properties:
+        granted: 
+          type: boolean
+          example: true
+        atts:
+          $ref: '#/components/schemas/w3cVcSkelsList'
+        reasonCode:
+          type: string
+          example: "001"
+      required:
+        - granted
+
+    w3cVcSkelsList:
+      type: array
+      description: A set of W3C VC Skeletons
+      items:
+        $ref: '#/components/schemas/w3cVc'
+
+    w3cVc:
+      type: object
+      description: >-
+        A W3C VC Skeleton object must contain an id, a @context list, a type list,
+        and a set of subject properties. cardImage is an optional field containing an 
+        URL for the card icon to be presented on the wallet app.
+      properties:
+        id:
+          type: string
+        issuer:
+          type: string
+        issuanceDate:
+          type: string
+        expirationDate:
+          type: string
+        '@context':
+          type: array
+          items:
+            type: string
+        type:
+          type: array
+          items:
+            type: string
+        credentialSubject:
+          type: object
+        termsOfUse:
+          type: array
+          items:
+            $ref: '#/components/schemas/termOfUse'
+        credentialSchema:
+            $ref: '#/components/schemas/credentialSchema'          
+      example: 
+        id: "http://example.edu/credentials/3732"
+        issuer: "https://vc.verifiablecredentials.net"
+        issuanceDate: "2010-01-01T19:23:24Z"
+        expirationDate: "2020-01-02T19:23:24Z"
+        '@context':
+          - "https://www.w3.org/2018/credentials/v1"
+          - "https://www.kent.ac.uk/VCcontext/v1"
+        type: 
+          - "VerifiableCredential"
+          - "DrivingLicenseCredential"
+        credentialSubject:
+          id: "did:key:jwk:eyJ4IjoiY0NNM0t...CZEw4N0xyTEg0WWYwdFhrIiwiYWxnIjoiRVMyNTYifQ"
+          name: "Fredrik"
+          surname: "Strömberg"
+          driving:
+            name: "Fredrik Strömberg"
+            DOB: "01/01/2000"
+            vehicle: "car, moped, bike"
+      required:
+        - id
+        - issuer
+        - issuanceDate
+        - expirationDate
+        - '@context'
+        - type
+        - credentialSubject
+
+    termOfUse:
+      type: object
+      properties:
+        type:
+          type: string
+          example: "https://train.trust-scheme.de/info/"
+        trustScheme:
+          type: array
+          items:
+            type: string
+          example: ["<member of trustscheme1>", "<member of trustscheme2>"]
+      required:
+        - type
+        - trustScheme
+
+    credentialSchema:
+      type: object
+      properties:
+        id:
+          type: string
+        type: 
+          type: string
+
+    vcSkelsList:
+      type: array
+      description: A set of VC Skeletons
+      items:
+        $ref: '#/components/schemas/vcObject'
+
+    vcObject:
+      type: object
+      description: >-
+        A VC Skeleton object must contain an id, a @context list, a type list,
+        and a set of subject properties. cardImage is an optional field containing an 
+        URL for the card icon to be presented on the wallet app.
+      properties:
+        '@context':
+          type: array
+          items:
+            type: string
+        type:
+          type: array
+          items:
+            type: string
+        credentialSubject:
+          type: object
+        issuer:
+          type: string
+      example: 
+        "@context": ["https://www.w3.org/2018/credentials/v1","https://www.kent.ac.uk/VCcontext/v1"]
+        type: ["VerifiableCredential", "DrivingLicenseCredential"]
+        credentialSubject:
+          name: "Fredrik"
+          surname: "Strömberg"
+          driving:
+            name: "Fredrik Strömberg"
+            DOB: "01/01/2000"
+            vehicle: "car, moped, bike"
+        issuer: "https://vc.verifiablecredentials.net"
+      required:
+        - '@context'
+        - type
+        - credentialSubject
+        - issuer
+
+    serverResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+            - failed
+        errorMessage:
+          type: string
+      required:
+        - errorMessage
+        - status
